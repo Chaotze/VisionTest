@@ -5,10 +5,8 @@
 
 export enum TestStage {
   Welcome = 'WELCOME',
-  CalibrateScreen = 'CALIBRATE_SCREEN',
-  CalibrateDistance = 'CALIBRATE_DISTANCE',
-  Testing = 'TESTING',
-  Result = 'RESULT'
+  Calibrating = 'CALIBRATING',
+  Testing = 'TESTING'
 }
 
 export enum EyeToTest {
