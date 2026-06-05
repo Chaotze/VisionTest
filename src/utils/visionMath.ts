@@ -53,7 +53,7 @@ interface Landmark {
 export function estimateDistanceCm(
   leftPupil: Landmark,
   rightPupil: Landmark,
-  focalFactor: number = 1.15
+  focalFactor: number = 1.0
 ): number {
   const dx = leftPupil.x - rightPupil.x;
   const dy = leftPupil.y - rightPupil.y;

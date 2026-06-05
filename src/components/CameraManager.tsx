@@ -297,7 +297,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
           const rightPupil = landmarks[473] || rightEyeCenter; // 473 exists in iris model
 
           // Compute Distance in cm
-          computedDistance = estimateDistanceCm(leftPupil, rightPupil, 1.15); // standard horizontal focal length scale
+          computedDistance = estimateDistanceCm(leftPupil, rightPupil, 1.0); // standard horizontal focal length scale
           setCurrentDistance(Math.round(computedDistance));
           onDistanceUpdate(computedDistance);
 
