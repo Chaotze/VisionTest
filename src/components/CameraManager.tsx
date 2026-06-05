@@ -57,7 +57,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
         setLoadStatus('正在获取 AI 运行时组件 (WASM)...');
         
         const filesetResolver = await FilesetResolver.forVisionTasks(
-          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/wasm'
+          '/mediapipe/tasks-vision/wasm'
         );
 
         if (!active) return;
@@ -65,7 +65,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
         
         const faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
           baseOptions: {
-            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+            modelAssetPath: '/mediapipe/face_landmarker.task',
             delegate: 'GPU',
           },
           runningMode: 'VIDEO',
@@ -79,7 +79,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
         setLoadStatus('2/2 正在加载手部动作方向识别模型...');
         const handLandmarker = await HandLandmarker.createFromOptions(filesetResolver, {
           baseOptions: {
-            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+            modelAssetPath: '/mediapipe/hand_landmarker.task',
             delegate: 'GPU',
           },
           runningMode: 'VIDEO',

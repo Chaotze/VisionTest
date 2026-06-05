@@ -1,6 +1,0 @@
-{
-  "name": "Smart Eye Exam",
-  "description": "基于 Mediapipe 的智慧测视力 Web 系统。具备人脸测眼距自动估算距离、双眼遮挡检测、手势和语音反馈调节，以及多媒体语音播报引导。",
-  "requestFramePermissions": ["camera", "microphone"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

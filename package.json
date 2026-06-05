@@ -1,17 +1,16 @@
 {
-  "name": "react-example",
+  "name": "vision-test",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.60606",
   "type": "module",
   "scripts": {
-    "dev": "vite --port=3000 --host=0.0.0.0",
+    "dev": "vite --host=0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@google/genai": "^2.4.0",
     "@mediapipe/tasks-vision": "^0.10.35",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
