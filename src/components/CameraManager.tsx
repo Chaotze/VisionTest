@@ -33,7 +33,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [loadStatus, setLoadStatus] = useState<string>('正在初始化相机与AI视觉引擎...');
+  const [loadStatus, setLoadStatus] = useState<string>('正在初始化相机和视觉引擎 ...');
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
   const [currentDistance, setCurrentDistance] = useState<number>(60);
@@ -61,7 +61,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
         );
 
         if (!active) return;
-        setLoadStatus('1/2 正在加载人脸测距与眼部状态诊断模型...');
+        setLoadStatus('1/2 正在加载人脸测距与眼部状态诊断模型 ...');
         
         const faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
           baseOptions: {
@@ -76,7 +76,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
         if (!active) return;
         faceLandmarkerRef.current = faceLandmarker;
         
-        setLoadStatus('2/2 正在加载手部动作方向识别模型...');
+        setLoadStatus('2/2 正在加载手部动作方向识别模型 ...');
         const handLandmarker = await HandLandmarker.createFromOptions(filesetResolver, {
           baseOptions: {
             modelAssetPath: '/mediapipe/hand_landmarker.task',
@@ -93,7 +93,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
         setLoadStatus('');
       } catch (err) {
         console.error('Error loading MediaPipe models:', err);
-        setLoadStatus('加载 AI 算法模型失败，请检查网络网络或刷新页面重试。');
+        setLoadStatus('算法模型加载失败，请检查网络网络或刷新页面重试');
       }
     }
 
@@ -283,18 +283,17 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
 
           // Left/Right eye centers
           const leftEyeCenter = {
-            x: (landmarks[33].x + landmarks[133].x) / 2,
-            y: (landmarks[33].y + landmarks[133].y) / 2
-          };
-          const rightEyeCenter = {
             x: (landmarks[362].x + landmarks[263].x) / 2,
             y: (landmarks[362].y + landmarks[263].y) / 2
           };
+          const rightEyeCenter = {
+            x: (landmarks[33].x + landmarks[133].x) / 2,
+            y: (landmarks[33].y + landmarks[133].y) / 2
+          };
 
           // Left Eye points center & pupil tracking
-          // Inner: 133, Outer: 33, Top: 159, Bottom: 145, Iris: 468
-          const leftPupil = landmarks[468] || leftEyeCenter; // 468 exists in iris model 
-          const rightPupil = landmarks[473] || rightEyeCenter; // 473 exists in iris model
+          const leftPupil = landmarks[473] || leftEyeCenter; // 473 exists in iris model 
+          const rightPupil = landmarks[468] || rightEyeCenter; // 468 exists in iris model
 
           // Compute Distance in cm
           computedDistance = estimateDistanceCm(leftPupil, rightPupil, 1.0); // standard horizontal focal length scale
@@ -303,15 +302,15 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
 
           // Detect Eye Aspects Ratio (EAR) for closures
           const leftEAR = calculateEAR(
-            landmarks[33], landmarks[133], // corners
-            landmarks[159], landmarks[158], // top lid points
-            landmarks[145], landmarks[153]  // bottom lid points
-          );
-
-          const rightEAR = calculateEAR(
             landmarks[362], landmarks[263], // corners
             landmarks[386], landmarks[385], // top lid points
             landmarks[374], landmarks[380]  // bottom lid points
+          );
+
+          const rightEAR = calculateEAR(
+            landmarks[33], landmarks[133], // corners
+            landmarks[159], landmarks[158], // top lid points
+            landmarks[145], landmarks[153]  // bottom lid points
           );
 
           // Standard blink thresholds for EAR (increased from 0.14 to 0.17 for better light/squint tolerance)
@@ -345,12 +344,12 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
             }
           }
 
-          // Draw face markers (beautiful modern diagnostic HUD)
+          // Draw face markers (HUD)
           drawFaceDiagnostic(
             ctx, 
             landmarks, 
             width, 
-            leftEyeClosed || leftEyeCoveredByHand, 
+            leftEyeClosed || leftEyeCoveredByHand,
             rightEyeClosed || rightEyeCoveredByHand
           );
         }
@@ -367,26 +366,26 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
 
     // 3. Clinical Warning Flags & Assist Guidance
     let alertMsg = null;
-    if (faceDetailsDetected) {
-      if (eyeTested === EyeToTest.Right) {
-        // Testing Right eye, left eye MUST be closed or covered
-        if (!isLeftOccluded) {
-          alertMsg = '检测提示：请闭上左眼或用手/遮眼板挡住左眼！';
-        }
-      } else if (eyeTested === EyeToTest.Left) {
-        // Testing Left eye, right eye MUST be closed or covered
-        if (!isRightOccluded) {
-          alertMsg = '检测提示：请闭上右眼或用手/遮眼板挡住右眼！';
-        }
-      } else {
-        // Both eyes active
-        if (isLeftOccluded || isRightOccluded) {
-          alertMsg = '注意：您正在进行双眼测试，请确保两只眼睛都张开！';
-        }
-      }
-    } else {
-      alertMsg = '未检测到面部，请确保光线充足并正对相机。';
-    }
+    // if (faceDetailsDetected) {
+    //   if (eyeTested === EyeToTest.Right) {
+    //     // Testing Right eye, left eye MUST be closed or covered
+    //     if (!isLeftOccluded) {
+    //       alertMsg = '检测提示：请闭上左眼或用手/遮眼板挡住左眼！';
+    //     }
+    //   } else if (eyeTested === EyeToTest.Left) {
+    //     // Testing Left eye, right eye MUST be closed or covered
+    //     if (!isRightOccluded) {
+    //       alertMsg = '检测提示：请闭上右眼或用手/遮眼板挡住右眼！';
+    //     }
+    //   } else {
+    //     // Both eyes active
+    //     if (isLeftOccluded || isRightOccluded) {
+    //       alertMsg = '注意：您正在进行双眼测试，请确保两只眼睛都张开！';
+    //     }
+    //   }
+    // } else {
+    //   alertMsg = '未检测到面部，请确保光线充足并正对相机。';
+    // }
 
     if (alertMsg !== warningMessage) {
       setWarningMessage(alertMsg);
@@ -407,8 +406,8 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
     const scaleY = (y: number) => y * ctx.canvas.height;
 
     // Draw pupils
-    const lp = landmarks[468];
-    const rp = landmarks[473];
+    const lp = landmarks[473];
+    const rp = landmarks[468];
 
     // Left Pupil (Observer's right, since mirrored)
     if (lp) {

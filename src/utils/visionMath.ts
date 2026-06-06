@@ -181,9 +181,9 @@ export function detectPointingGesture(
     if (mirrored) {
       // In a mirrored webcam, when pointing left of screen (dx < 0), physical finger points to user's left.
       // dx < 0 means pointing to client-view-left!
-      return dx < 0 ? Direction.Left : Direction.Right;
-    } else {
       return dx < 0 ? Direction.Right : Direction.Left;
+    } else {
+      return dx < 0 ? Direction.Left : Direction.Right;
     }
   }
 }
