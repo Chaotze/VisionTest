@@ -45,11 +45,7 @@ export default function CreditCardCalibrator({
 
   return (
     <div className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xl p-4 md:p-6 overflow-hidden relative">
-      {/* Background radial glow */}
-      <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 rounded-full bg-indigo-500/10 blur-3xl" />
-      <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-48 h-48 rounded-full bg-violet-500/10 blur-3xl" />
-
-      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-2">
+      <h2 className="text-xl font-semibold text-slate-600 dark:text-slate-100 flex items-center gap-2 mb-2">
         {/* <Sparkles className="w-6 h-6 text-indigo-500 animate-pulse" /> */}
         PPI 校准
       </h2>
@@ -102,7 +98,7 @@ export default function CreditCardCalibrator({
       {/* Control Slider */}
       <div className="space-y-4 mb-6">
         <div className="flex justify-between items-center text-sm">
-          <span className="font-semibold text-slate-700 dark:text-slate-300">调节宽度</span>
+          <span className="font-semibold text-slate-600 dark:text-slate-300">调节宽度</span>
           <span className="font-mono text-slate-500 dark:text-slate-400">
             {boxWidth} 像素 (PPI: {Math.round(boxWidth / CARD_REAL_WIDTH_INCHES)})
           </span>
@@ -174,7 +170,7 @@ export default function CreditCardCalibrator({
         )}
         <button
           onClick={handleSave}
-          className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 hover:shadow-indigo-500/10 hover:shadow-lg text-white font-semibold rounded-2xl transition flex items-center justify-center gap-2"
+          className="flex-1 px-4 py-2.5 bg-gradient-to-br from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 hover:from-indigo-700 hover:to-purple-700 dark:hover:from-indigo-500 dark:hover:to-purple-500 hover:shadow-indigo-500/10 hover:shadow-lg text-white font-semibold rounded-2xl transition flex items-center justify-center gap-2"
         >
           <CheckCircle className="w-5 h-5" />
           完成

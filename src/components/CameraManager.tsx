@@ -4,7 +4,8 @@
  */
 
 import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
-import { Camera, CameraOff, VideoOff, Info, AlertCircle, RefreshCw } from 'lucide-react';
+import { Camera, CameraOff, VideoOff, Info, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 import { FilesetResolver, FaceLandmarker, HandLandmarker } from '@mediapipe/tasks-vision';
 import { estimateDistanceCm, calculateEAR, detectPointingGesture } from '../lib/visionMath';
 import { Direction, EyeToTest, FeedbackMode } from '../types';
@@ -36,8 +37,8 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
   const [loadStatus, setLoadStatus] = useState<string>('正在初始化相机和视觉引擎 ...');
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
+  const [isStartingCamera, setIsStartingCamera] = useState<boolean>(false);
   const [currentDistance, setCurrentDistance] = useState<number>(60);
-  const [warningMessage, setWarningMessage] = useState<string | null>(null);
 
   // MediaPipe Models
   const faceLandmarkerRef = useRef<FaceLandmarker | null>(null);
@@ -46,6 +47,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
   const requestRef = useRef<number | null>(null);
 
   const lastGestureRef = useRef<{ direction: Direction; timestamp: number } | null>(null);
+  const lastToastRef = useRef<string | null>(null);
 
   // Initialize MediaPipe Models once
   useEffect(() => {
@@ -54,7 +56,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
     async function loadModels() {
       try {
         setIsLoading(true);
-        setLoadStatus('正在获取 AI 运行时组件 (WASM)...');
+        setLoadStatus('正在获取运行时组件(WASM) ...');
         
         const filesetResolver = await FilesetResolver.forVisionTasks(
           '/mediapipe/tasks-vision/wasm'
@@ -92,7 +94,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
         setIsLoading(false);
         setLoadStatus('');
       } catch (err) {
-        console.error('Error loading MediaPipe models:', err);
+        console.error('Error loading MediaPipe models: ', err);
         setLoadStatus('算法模型加载失败，请检查网络网络或刷新页面重试');
       }
     }
@@ -101,21 +103,9 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
 
     return () => {
       active = false;
-      stopCamera();
+      // Don't stop camera - keep it running unless permission is denied
     };
   }, []);
-
-  // Web Speech synthesis to speak guidelines
-  const speakGuidance = (text: string) => {
-    // Avoid double triggers
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'zh-CN';
-      utterance.rate = 1.0;
-      window.speechSynthesis.speak(utterance);
-    }
-  };
 
   useImperativeHandle(ref, () => ({
     startCamera: async () => {
@@ -127,8 +117,10 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
   }));
 
   const startCameraInternal = async () => {
-    stopCamera();
-    setWarningMessage(null);
+    // Don't stop camera - keep it running unless permission is denied
+    lastToastRef.current = null;
+    toast.dismiss();
+    setIsStartingCamera(true);
     try {
       setHasPermission(null);
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -147,18 +139,21 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
         // Explicitly play to kick off streaming inside iframe contexts and ensure prompt drawing
         videoRef.current.play()
           .then(() => {
-            onVideoLoaded(); // Safe duplicate call: cancels previous animation loop
+            // Don't set isStartingCamera to false here - let onVideoLoaded handle it
+            // when the video frame is actually ready to display
           })
           .catch(err => {
-            console.warn("Video playback was deferred/interrupted:", err);
+            console.warn("Video playback was deferred/interrupted: ", err);
           });
       }
       setHasPermission(true);
       setIsCameraActive(true);
+      // Don't set isStartingCamera to false here - wait for video to actually display
     } catch (err) {
-      console.error('Error accessing camera:', err);
+      console.error('Error accessing camera: ', err);
       setHasPermission(false);
       setIsCameraActive(false);
+      setIsStartingCamera(false);
     }
   };
 
@@ -190,6 +185,8 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
       cancelAnimationFrame(requestRef.current);
     }
     requestRef.current = requestAnimationFrame(processingLoop);
+    // Now that video frame is ready to display, hide the starting camera overlay
+    setIsStartingCamera(false);
   };
 
   // Processing loop that drives Face + Hand assessment frame-by-frame
@@ -377,30 +374,17 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
     onEyeOcclusionUpdate({ left: isLeftOccluded, right: isRightOccluded });
 
     // 3. Clinical Warning Flags & Assist Guidance
-    let alertMsg = null;
-    // if (faceDetailsDetected) {
-    //   if (eyeTested === EyeToTest.Right) {
-    //     // Testing Right eye, left eye MUST be closed or covered
-    //     if (!isLeftOccluded) {
-    //       alertMsg = '检测提示：请闭上左眼或用手/遮眼板挡住左眼！';
-    //     }
-    //   } else if (eyeTested === EyeToTest.Left) {
-    //     // Testing Left eye, right eye MUST be closed or covered
-    //     if (!isRightOccluded) {
-    //       alertMsg = '检测提示：请闭上右眼或用手/遮眼板挡住右眼！';
-    //     }
-    //   } else {
-    //     // Both eyes active
-    //     if (isLeftOccluded || isRightOccluded) {
-    //       alertMsg = '注意：您正在进行双眼测试，请确保两只眼睛都张开！';
-    //     }
-    //   }
-    // } else {
-    //   alertMsg = '未检测到面部，请确保光线充足并正对相机。';
-    // }
-
-    if (alertMsg !== warningMessage) {
-      setWarningMessage(alertMsg);
+    if (!faceDetailsDetected) {
+      const msg = '未检测到面部，请确保光线充足并正对相机。';
+      if (lastToastRef.current !== msg) {
+        lastToastRef.current = msg;
+        toast.warning(msg);
+      }
+    } else {
+      if (lastToastRef.current !== null) {
+        lastToastRef.current = null;
+        toast.dismiss();
+      }
     }
 
     requestRef.current = requestAnimationFrame(processingLoop);
@@ -578,9 +562,9 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
   };
 
   return (
-    <div className="w-full bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden relative shadow-inner">
+    <div className="w-full rounded-2xl overflow-hidden relative">
       {isLoading ? (
-        <div className="w-full aspect-video min-h-[280px] flex flex-col items-center justify-center bg-slate-950 p-6 text-center">
+        <div className="w-full max-h-[280px] aspect-video flex flex-col items-center justify-center bg-slate-950 p-6 text-center">
           <RefreshCw className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
           <div className="text-slate-200 font-medium mb-1">{loadStatus}</div>
           <div className="text-slate-500 text-xs text-center max-w-sm">
@@ -602,40 +586,33 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
           <div className="relative w-full aspect-video overflow-hidden">
             <canvas
               ref={canvasRef}
-              className="w-full h-full object-cover rounded-3xl"
+              className="w-full h-full object-cover"
             />
 
-            {/* Prompt when camera is inactive */}
-            {!isCameraActive && (
-              <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
-                {hasPermission === false ? (
-                  <div className="max-w-md space-y-4">
-                    <VideoOff className="w-12 h-12 text-rose-500 mx-auto" />
-                    <h4 className="text-white font-semibold text-lg">相机访问被拒绝</h4>
-                    <p className="text-slate-400 text-sm">
-                      本智慧测视力系统需要视频相机来自动估算<b>社交距离</b>、检查您<b>是否捂住了一只眼</b>，以及接收<b>手势划动字符反馈</b>。请在浏览器地址栏顶端恢复相机授权许可。
-                    </p>
-                  </div>
-                ) : (
-                  <div className="max-w-md space-y-4">
-                    <Camera className="w-12 h-12 text-indigo-400 mx-auto animate-bounce" />
-                    <h4 className="text-white font-semibold text-lg">开启 AI 卡片视觉诊断</h4>
-                    <p className="text-slate-400 text-sm">
-                      点击下方开启按钮。您的全部摄像头视频只在<b>浏览器本地运算</b>，我们保证不会上传任何一帧影像到服务器，安全保护您的隐私。
-                    </p>
-                    <button
-                      onClick={startCameraInternal}
-                      className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/20 active:scale-95 transition text-white text-sm font-semibold rounded-xl"
-                    >
-                      授权并启动摄像头
-                    </button>
-                  </div>
-                )}
+            {/* Loading prompt when camera is starting */}
+            {isStartingCamera && (
+              <div className="absolute inset-0 bg-slate-50/80 rounded-2xl border border-slate-100 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
+                <RefreshCw className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
+                <div className="text-slate-600 font-semibold mb-1">正在启动相机 ...</div>
+                <div className="text-slate-400 text-xs text-center max-w-xs">
+                  请允许浏览器访问摄像头权限
+                </div>
+              </div>
+            )}
+
+            {/* Prompt when camera permission is denied */}
+            {hasPermission === false && (
+              <div className="absolute inset-0 bg-slate-50/80 rounded-2xl border border-slate-100 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center space-y-3">
+                <VideoOff className="w-12 h-12 text-rose-500 mx-auto" />
+                <h4 className="text-slate-700 font-bold text-lg">相机访问被拒绝</h4>
+                <p className="text-slate-500 text-xs text-center max-w-xs">
+                  需要相机访问授权来自动估算<b>面部与屏幕距离</b>、检查您<b>是否捂住了一只眼</b>，及接收<b>手势划动字符反馈</b>。请在浏览器地址栏顶端恢复相机授权许可
+                </p>
               </div>
             )}
 
             {/* Float HUD Details */}
-            {isCameraActive && (
+            {/* {isCameraActive && (
               <div className="absolute top-4 left-4 right-4 flex justify-between gap-4 pointer-events-none">
                 <div className="bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-white font-mono text-xs flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -649,15 +626,8 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
                   </span>
                 </div>
               </div>
-            )}
+            )} */}
 
-            {/* Diagnostic Alert Overlay */}
-            {isCameraActive && warningMessage && (
-              <div className="absolute bottom-4 left-4 right-4 bg-rose-500/90 text-white font-medium text-xs md:text-sm px-4 py-2.5 rounded-2xl border border-rose-400/30 flex items-center gap-2 pointer-events-none shadow-lg backdrop-blur-md animate-fade-in animate-bounce">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{warningMessage}</span>
-              </div>
-            )}
           </div>
         </div>
       )}

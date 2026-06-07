@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Eye, Sliders, Play, CheckCircle2, ShieldCheck, Sparkles,
   HelpCircle, Monitor, BookOpen, Scaling, Cpu, MonitorDot
@@ -46,8 +47,8 @@ export default function App() {
 
       {/* HEADER BAR */}
       <header className="sticky top-0 z-30 bg-white/50 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/80 transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-3.5 hover:opacity-80 transition-opacity">
             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-300 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
               <Eye className="w-5.5 h-5.5 stroke-[2.5]" />
             </div>
@@ -55,31 +56,31 @@ export default function App() {
               {/* <h1 className="text-md sm:text-lg font-black tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-1.5 leading-none">
                 AI 智慧测视力 <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-200/30">V2.0</span>
               </h1>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-tight">基于 MediaPipe 计算机视觉与 WebSpeech语音技术</span> */}
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-tight">基于 MediaPipe 计算机视觉与 WebSpeech 语音技术</span> */}
               <h1 className="text-lg text-slate-900 dark:text-slate-100 flex items-center gap-1.5 select-none leading-none font-[Montserrat] font-thin tracking-[0.3em] uppercase">
                 VISIONTEST
               </h1>
             </div>
-          </div>
+          </Link>
 
           <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-2">
+            {/* <div className="hidden md:flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
               <span className="text-xs text-slate-500 dark:text-slate-400 select-none uppercase tracking-wide">本地离线引擎</span>
-            </div>
+            </div> */}
 
-            <div className="hidden md:flex items-center gap-1.5 pl-3 pr-2 py-1 rounded-xl text-xs select-none tracking-wide text-slate-500 dark:text-slate-400">
+            <div className="hidden md:flex items-center gap-1.5 pl-3 pr-2 py-1 rounded-xl text-xs tracking-wide text-slate-500 dark:text-slate-400">
               <Cpu className="w-3.5 h-3.5 text-indigo-500" />
               <span>已启用 GPU 加速</span>
             </div>
 
             <button
               onClick={() => setStage(TestStage.Calibrating)}
-              className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-950/60 text-slate-500 dark:text-slate-350 rounded-xl border border-indigo-200/50 dark:border-indigo-800/50 text-xs select-none transition"
+              className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-950/60 text-slate-500 dark:text-slate-350 rounded-xl border border-indigo-200/50 dark:border-indigo-800/50 text-xs transition"
               title="校准屏幕 PPI"
             >
               <MonitorDot className="w-3.5 h-3.5 text-indigo-500" />
-              <span className="hidden sm:inline">前往 PPI 校准</span>
+              <span className="hidden sm:inline">PPI 校准</span>
             </button>
           </div>
         </div>
@@ -126,7 +127,7 @@ export default function App() {
       <footer className="py-4 border-t border-slate-200/50 dark:border-slate-850/80 bg-white/40 dark:bg-slate-900/40 text-center text-slate-400 dark:text-slate-500 text-[11px] font-semilight tracking-wide">
         <span>Copyright © 2026 </span>
         <span className="font-semibold font-[Montserrat]">VISIONTEST</span>
-        <span>.{' '}保留所有权利。测试结果仅供日常预防护理，正规检查请前往三甲医院视光中心或眼科就诊。</span>
+        <span>.&nbsp;&nbsp;保留所有权利。测试结果仅供日常预防护理，正规检查请前往三甲医院视光中心或眼科就诊。</span>
       </footer>
 
       <Toaster position="top-center" />
