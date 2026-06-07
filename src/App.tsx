@@ -12,6 +12,7 @@ import { TestStage, CalibrationData } from './types';
 import CreditCardCalibrator from './components/CreditCardCalibrator';
 import VisionTest from './components/VisionTest';
 import WelcomePage from './components/WelcomePage';
+import { Toaster } from './components/ui/sonner';
 
 export default function App() {
   const [stage, setStage] = useState<TestStage>(TestStage.Testing);
@@ -128,6 +129,7 @@ export default function App() {
         <span>.{' '}保留所有权利。测试结果仅供日常预防护理，正规检查请前往三甲医院视光中心或眼科就诊。</span>
       </footer>
 
+      <Toaster position="top-center" />
     </div>
   );
 }

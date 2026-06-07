@@ -10,6 +10,7 @@ import {
   CheckCircle2, XCircle, RotateCcw, AlertTriangle, ArrowRight, Eye, ShieldAlert, Award,
   Camera, CameraOff
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { 
   TestStage, EyeToTest, FeedbackMode, Direction, 
   ACUITY_LEVELS, CalibrationData, TestSession 
@@ -37,7 +38,6 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
   
   // Active test visual states
   const [currentEDirection, setCurrentEDirection] = useState<Direction>(Direction.Right);
-  const [testLog, setTestLog] = useState<string[]>([]);
   const [isAnswering, setIsAnswering] = useState<boolean>(false);
   const [answerResult, setAnswerResult] = useState<'correct' | 'wrong' | null>(null);
   
@@ -149,7 +149,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
   const initSpeechRecognition = () => {
     const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) {
-      setTestLog(prev => [...prev, '系统提示：当前浏览器不支持语音识别功能，请选择手势或键盘反馈！']);
+      toast.error('当前浏览器不支持语音识别功能，请选择手势或键盘反馈！');
       return;
     }
 
@@ -225,7 +225,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
       playSound('wrong');
       const targetEyeStr = eyeTested === EyeToTest.Right ? '左眼' : '右眼';
       speak(`校准警报。测试的是${eyeTested === EyeToTest.Right ? '右眼' : '左眼'}，请您牢牢挡住${targetEyeStr}后再作答！`);
-      setTestLog(prev => [`[遮挡纠正警告] 请闭上/遮挡住 "${targetEyeStr}" 才能记录本题成绩！`, ...prev]);
+      toast.warning(`遮挡纠正警告`, { description: `请闭上或遮挡住 ${targetEyeStr} 后继续测试` });
       return;
     }
 
@@ -257,17 +257,13 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     let isCompleted = false;
     let finalScore = currentSession.finalScore;
 
-    let debugLogStr = `答题：用户选 [${userDir}] (${isCorrect ? '正确' : '错误'}) | 当前视力水平 ${currentAcuity.fivePoint} | 得分：${correctCount}对，${wrongCount}错.`;
-
     if (correctCount >= 2) {
       if (currentSession.currentLevelIndex < ACUITY_LEVELS.length - 1) {
         nextLevelIndex = currentSession.currentLevelIndex + 1;
-        debugLogStr += ` -> 🎯 顺利突破！`;
         speak(`正确。升级进入 ${ACUITY_LEVELS[nextLevelIndex].fivePoint} 级别。`);
       } else {
         isCompleted = true;
         finalScore = ACUITY_LEVELS[currentSession.currentLevelIndex];
-        debugLogStr += ` -> 🏆 满分通关！`;
         speak(`测试完成。您的视力达到上限 ${finalScore.fivePoint}！`);
         playSound('complete');
       }
@@ -275,14 +271,11 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
       isCompleted = true;
       const finalIndex = Math.max(0, currentSession.currentLevelIndex - 1);
       finalScore = ACUITY_LEVELS[finalIndex];
-      debugLogStr += ` -> 🛑 测试结束。最终视力：${finalScore.fivePoint}。`;
       speak(`测试结束。您的测试视力得分为 ${finalScore.fivePoint}。`);
       playSound('complete');
     } else {
       speak(isCorrect ? "正确" : "错误");
     }
-
-    setTestLog(prev => [debugLogStr, ...prev]);
 
     setTimeout(() => {
       if (isCompleted) {
@@ -397,7 +390,6 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     setCurrentEDirection(randomDir);
     directionRef.current = randomDir; // Sync Ref immediately
 
-    setTestLog([]);
     setIsAnswering(false);
     isAnsweringRef.current = false;
     setAnswerResult(null);
@@ -638,31 +630,6 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
             </div>
           )}
         </div>
-
-        {/* Console Diagnostics logs output */}
-        {session && (
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800/85 p-6 shadow-xl space-y-3">
-            <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-indigo-500" />
-              测试会话调试日志 (Ophthalmic Staircase Logs)
-            </h4>
-            <div className="w-full h-36 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/85 rounded-xl p-3 font-mono text-xs overflow-y-auto space-y-2 flex flex-col-reverse text-slate-600 dark:text-slate-400">
-              {testLog.length > 0 ? (
-                testLog.map((log, idx) => (
-                  <div key={idx} className="border-b border-slate-100 dark:border-slate-900/50 pb-1.5 last:border-0">
-                    <span className="text-indigo-500 mr-1.5">[{idx + 1}]</span>
-                    {log}
-                  </div>
-                ))
-              ) : (
-                <div className="text-slate-400 dark:text-slate-600 text-center py-6 italic flex items-center justify-center gap-2">
-                  <HelpCircle className="w-4 h-4 text-slate-400 animate-bounce" />
-                  <span>等待首个字符输入反馈，测试数据将流传于此</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* RIGHT COLUMN: Camera controls, Occlusion statuses & Calibration presets */}
