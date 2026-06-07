@@ -48,6 +48,11 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const speechRecognitionRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
+  
+  // Refs for consistent state access in async callbacks (Resolves Stale Closures)
+  const sessionRef = useRef<TestSession | null>(null);
+  const directionRef = useRef<Direction>(Direction.Right);
+  const isAnsweringRef = useRef<boolean>(false);
 
   // Synchronize actual distance
   useEffect(() => {
@@ -55,6 +60,12 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
       setDistanceCm(manualDistanceCm);
     }
   }, [autoDistanceMode, manualDistanceCm]);
+
+  // Keep Refs in sync with current states for async handlers
+  useEffect(() => {
+    sessionRef.current = session;
+    isAnsweringRef.current = isAnswering;
+  }, [session, isAnswering]);
 
   // Handle Speech Guidance Speak helper
   const speak = (text: string) => {
@@ -167,21 +178,21 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
         identifiedDir = Direction.Right;
       }
 
-      if (identifiedDir && session && !session.completed && !isAnswering) {
+      // Consistent check using Refs
+      const currentSession = sessionRef.current;
+      if (identifiedDir && currentSession && !currentSession.completed && !isAnsweringRef.current) {
         handleUserAnswer(identifiedDir);
       }
     };
 
     rec.onerror = (e: any) => {
       console.warn('Speech Recognition error:', e.error);
-      if (e.error === 'no-speech') {
-        // restart silently or keep ready
-      }
     };
 
     rec.onend = () => {
       // Auto restart if FeedbackMode is Voice and session is running
-      if (feedbackMode === FeedbackMode.Voice && session && !session.completed) {
+      const currentSession = sessionRef.current;
+      if (feedbackMode === FeedbackMode.Voice && currentSession && !currentSession.completed) {
         try {
           rec.start();
         } catch (err) {}
@@ -196,11 +207,114 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     } catch (err) {}
   };
 
+  const handleUserAnswer = (userDir: Direction) => {
+    const currentSession = sessionRef.current;
+    if (!currentSession || currentSession.completed || isAnsweringRef.current) {
+      return;
+    }
+
+    if (autoDistanceMode && !isEyeOcclusionCorrect()) {
+      playSound('wrong');
+      const targetEyeStr = eyeTested === EyeToTest.Right ? '左眼' : '右眼';
+      speak(`校准警报。测试的是${eyeTested === EyeToTest.Right ? '右眼' : '左眼'}，请您牢牢挡住${targetEyeStr}后再作答！`);
+      setTestLog(prev => [`[遮挡纠正警告] 请闭上/遮挡住 "${targetEyeStr}" 才能记录本题成绩！`, ...prev]);
+      return;
+    }
+
+    setIsAnswering(true);
+    isAnsweringRef.current = true; // Lock immediately
+
+    const correctDir = directionRef.current; // Get the absolute latest direction
+    const isCorrect = userDir === correctDir;
+    
+    setAnswerResult(isCorrect ? 'correct' : 'wrong');
+    playSound(isCorrect ? 'correct' : 'wrong');
+
+    const currentAcuity = ACUITY_LEVELS[currentSession.currentLevelIndex];
+    const newHistoryItem = {
+      levelIndex: currentSession.currentLevelIndex,
+      direction: correctDir,
+      userResponse: userDir,
+      isCorrect,
+      distanceCm: Math.round(distanceCm),
+      timestamp: Date.now()
+    };
+
+    const updatedHistory = [...currentSession.history, newHistoryItem];
+    const currentLevelHistory = updatedHistory.filter(h => h.levelIndex === currentSession.currentLevelIndex);
+    const correctCount = currentLevelHistory.filter(h => h.isCorrect).length;
+    const wrongCount = currentLevelHistory.filter(h => !h.isCorrect).length;
+
+    let nextLevelIndex = currentSession.currentLevelIndex;
+    let isCompleted = false;
+    let finalScore = currentSession.finalScore;
+
+    let debugLogStr = `答题：用户选 [${userDir}] (${isCorrect ? '正确' : '错误'}) | 当前视力水平 ${currentAcuity.fivePoint} | 得分：${correctCount}对，${wrongCount}错.`;
+
+    if (correctCount >= 2) {
+      if (currentSession.currentLevelIndex < ACUITY_LEVELS.length - 1) {
+        nextLevelIndex = currentSession.currentLevelIndex + 1;
+        debugLogStr += ` -> 🎯 顺利突破！`;
+        speak(`正确。升级进入 ${ACUITY_LEVELS[nextLevelIndex].fivePoint} 级别。`);
+      } else {
+        isCompleted = true;
+        finalScore = ACUITY_LEVELS[currentSession.currentLevelIndex];
+        debugLogStr += ` -> 🏆 满分通关！`;
+        speak(`测试完成。您的视力达到上限 ${finalScore.fivePoint}！`);
+        playSound('complete');
+      }
+    } else if (wrongCount >= 2) {
+      isCompleted = true;
+      const finalIndex = Math.max(0, currentSession.currentLevelIndex - 1);
+      finalScore = ACUITY_LEVELS[finalIndex];
+      debugLogStr += ` -> 🛑 测试结束。最终视力：${finalScore.fivePoint}。`;
+      speak(`测试结束。您的测试视力得分为 ${finalScore.fivePoint}。`);
+      playSound('complete');
+    } else {
+      speak(isCorrect ? "正确" : "错误");
+    }
+
+    setTestLog(prev => [debugLogStr, ...prev]);
+
+    setTimeout(() => {
+      if (isCompleted) {
+        const finalSession = {
+          ...currentSession,
+          history: updatedHistory,
+          completed: true,
+          finalScore
+        };
+        setSession(finalSession);
+        sessionRef.current = finalSession;
+      } else {
+        const nextEDir = getRandomDirection();
+        setCurrentEDirection(nextEDir);
+        directionRef.current = nextEDir; // Sync direction for next question
+        
+        const nextSession = {
+          ...currentSession,
+          history: updatedHistory,
+          currentLevelIndex: nextLevelIndex,
+          completed: false
+        };
+        setSession(nextSession);
+        sessionRef.current = nextSession;
+      }
+      setIsAnswering(false);
+      isAnsweringRef.current = false;
+      setAnswerResult(null);
+    }, 3000);
+  };
+
+  // Handler Ref to allow Keyboard useEffect to be defined once without stale closures
+  const answerHandlerRef = useRef(handleUserAnswer);
+  useEffect(() => {
+    answerHandlerRef.current = handleUserAnswer;
+  }, [handleUserAnswer]);
+
   // Keyboard handler for Fallback manual control
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!session || session.completed || isAnswering) return;
-
       let direction: Direction | null = null;
       switch (e.key) {
         case 'ArrowUp':
@@ -227,13 +341,13 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
 
       if (direction) {
         e.preventDefault();
-        handleUserAnswer(direction);
+        answerHandlerRef.current(direction);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [session, isAnswering]);
+  }, []); // Only register once
 
   // Control Voice Recognition state based on Feedbacks Mode
   useEffect(() => {
@@ -252,16 +366,14 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
 
   // Master Test Start trigger
   const handleStartTest = () => {
-    // Standard staircase testing starts at index 3 (Visual Acuity decimal 0.2 / 20/100, customisable)
     const initialIndex = 3; 
     const randomDir = getRandomDirection();
     
-    // Start camera tracking immediately if AutoDistance is true
     if (autoDistanceMode && cameraRef.current) {
       cameraRef.current.startCamera();
     }
 
-    setSession({
+    const newSession = {
       eye: eyeTested,
       history: [],
       currentLevelIndex: initialIndex,
@@ -269,14 +381,19 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
       consecutiveWrong: 0,
       completed: false,
       finalScore: null
-    });
+    };
+
+    setSession(newSession);
+    sessionRef.current = newSession; 
     
     setCurrentEDirection(randomDir);
+    directionRef.current = randomDir; // Sync Ref immediately
+
     setTestLog([]);
     setIsAnswering(false);
+    isAnsweringRef.current = false;
     setAnswerResult(null);
 
-    // Initial voice introduction
     const label = eyeTested === EyeToTest.Right ? '右眼视力，请挡住左眼' : eyeTested === EyeToTest.Left ? '左眼视力，请挡住右眼' : '双眼视力';
     speak(`视力测试开始。当前检测为：${label}。请做出手势，或使用语音、键盘箭头控制。请看屏幕中央的字符，辨别其空缺的方向。`);
   };
@@ -287,121 +404,13 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
   };
 
   // Eye Occlusion validation check
-  // Returns true if the client is covering the correct eye matching physical constraints.
   const isEyeOcclusionCorrect = (): boolean => {
     if (eyeTested === EyeToTest.Right) {
-      // Left eye must be occluded
       return eyeOcclusion.left;
     } else if (eyeTested === EyeToTest.Left) {
-      // Right eye must be occluded
       return eyeOcclusion.right;
     }
-    return true; // "Both" eyes doesn't require any closure
-  };
-
-  const handleUserAnswer = (userDir: Direction) => {
-    if (!session || session.completed || isAnswering) return;
-
-    // Check Occlusion first! If incorrect, play low buzz sound and speak a visual feedback warning
-    if (autoDistanceMode && !isEyeOcclusionCorrect()) {
-      playSound('wrong');
-      const targetEyeStr = eyeTested === EyeToTest.Right ? '左眼' : '右眼';
-      speak(`校准警报。测试的是${eyeTested === EyeToTest.Right ? '右眼' : '左眼'}，请您牢牢挡住${targetEyeStr}后再作答！`);
-      setTestLog(prev => [...prev, `[遮挡纠正警告] 请闭上/遮挡住 "${targetEyeStr}" 才能记录本题成绩！`]);
-      return;
-    }
-
-    setIsAnswering(true);
-    const correctDir = currentEDirection;
-    const isCorrect = userDir === correctDir;
-    
-    setAnswerResult(isCorrect ? 'correct' : 'wrong');
-    playSound(isCorrect ? 'correct' : 'wrong');
-
-    // Record question in history
-    const currentAcuity = ACUITY_LEVELS[session.currentLevelIndex];
-    const newHistoryItem = {
-      levelIndex: session.currentLevelIndex,
-      direction: correctDir,
-      userResponse: userDir,
-      isCorrect,
-      distanceCm: Math.round(distanceCm),
-      timestamp: Date.now()
-    };
-
-    const updatedHistory = [...session.history, newHistoryItem];
-    
-    // Core Ophthalmic Staircase testing algorithm:
-    // For each visual acuity level:
-    // - User is asked up to 3 questions.
-    // - If they get 2 questions correct -> they PASS this level. Advance to the next smaller size (+1 levelIndex).
-    // - If they get 2 questions wrong -> they FAIL this level. The test terminates! Their final score is the previous passed level.
-    // - If we reach the smallest E level (5.2 / index 12) and pass it, the test finishes successfully.
-    
-    // Let's filter history for the current level
-    const currentLevelHistory = updatedHistory.filter(h => h.levelIndex === session.currentLevelIndex);
-    const correctCount = currentLevelHistory.filter(h => h.isCorrect).length;
-    const wrongCount = currentLevelHistory.filter(h => !h.isCorrect).length;
-
-    let nextLevelIndex = session.currentLevelIndex;
-    let isCompleted = false;
-    let finalScore = session.finalScore;
-
-    let debugLogStr = `答题: 用户选 [${userDir}] (${isCorrect ? '正确' : '错误'}) | 当前视力水平 ${currentAcuity.fivePoint} (${currentAcuity.decimal}) | 关卡内得分: ${correctCount}对, ${wrongCount}错.`;
-
-    if (correctCount >= 2) {
-      // Passed this level!
-      if (session.currentLevelIndex < ACUITY_LEVELS.length - 1) {
-        nextLevelIndex = session.currentLevelIndex + 1;
-        debugLogStr += ` -> 🎯 顺利突破！晋级到下一个更高清晰度：${ACUITY_LEVELS[nextLevelIndex].fivePoint}。`;
-        // Speak guidance
-        speak(`正确。升级进入 ${ACUITY_LEVELS[nextLevelIndex].fivePoint} 级别。`);
-      } else {
-        // Reached maximum vision!
-        isCompleted = true;
-        finalScore = ACUITY_LEVELS[session.currentLevelIndex];
-        debugLogStr += ` -> 🏆 满分通关！您的视力达到上限！`;
-        speak(`测试完成。您的视力得分极为优秀，达到上限 ${finalScore.fivePoint}！`);
-        playSound('complete');
-      }
-    } else if (wrongCount >= 2) {
-      // Failed this level! The test stops.
-      isCompleted = true;
-      // Final scored level is the immediate previous index they successfully cleared, or the lowest level if they failed initial
-      const finalIndex = Math.max(0, session.currentLevelIndex - 1);
-      finalScore = ACUITY_LEVELS[finalIndex];
-      debugLogStr += ` -> 🛑 测试结束。判定您最终视力得分：${finalScore.fivePoint}。`;
-      speak(`测试结束。您的测试视力得分为 ${finalScore.fivePoint}。`);
-      playSound('complete');
-    } else {
-      // Level continues
-      speak(isCorrect ? "正确" : "错误");
-    }
-
-    setTestLog(prev => [debugLogStr, ...prev]);
-
-    // Animate answer display card fading out before showing next letter
-    setTimeout(() => {
-      if (isCompleted) {
-        setSession({
-          ...session,
-          history: updatedHistory,
-          completed: true,
-          finalScore
-        });
-      } else {
-        const nextEDir = getRandomDirection();
-        setCurrentEDirection(nextEDir);
-        setSession({
-          ...session,
-          history: updatedHistory,
-          currentLevelIndex: nextLevelIndex,
-          completed: false
-        });
-      }
-      setIsAnswering(false);
-      setAnswerResult(null);
-    }, 1200);
+    return true; 
   };
 
   const handleStopTest = () => {
@@ -414,9 +423,9 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
       } catch (e) {}
     }
     setSession(null);
+    sessionRef.current = null;
   };
 
-  // Convert current testing parameters to correct pixel dimensions
   const activeAcuity = session ? ACUITY_LEVELS[session.currentLevelIndex] : ACUITY_LEVELS[3];
   const calculatedSizePx = calculateOptotypeSizePx(
     distanceCm,
@@ -433,10 +442,8 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
         {/* Visualized Optotype Display Panel */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800/85 p-6 shadow-xl flex flex-col items-center justify-between min-h-[460px] relative overflow-hidden">
           
-          {/* Radial light grids */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 via-indigo-500 to-cyan-500" />
           
-          {/* Top Info Bar */}
           <div className="w-full flex justify-between items-center text-sm mb-4">
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold rounded-lg tracking-wider text-xs uppercase">
@@ -451,7 +458,6 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Mute button */}
               <button
                 onClick={() => {
                   const val = !isMuted;
@@ -468,7 +474,6 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
             </div>
           </div>
 
-          {/* Core E Chart Area */}
           <div className="flex-1 flex flex-col items-center justify-center p-6 min-h-[220px]">
             {session && !session.completed ? (
               <div className="relative flex items-center justify-center">
@@ -534,7 +539,6 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                 </div>
               </div>
             ) : (
-              // Ready screen 
               <div className="text-center space-y-4 max-w-sm">
                 <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/40 rounded-full flex items-center justify-center mx-auto text-indigo-500">
                   <Eye className="w-9 h-9" />
@@ -554,7 +558,6 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
             )}
           </div>
 
-          {/* Interactive Keyboard fallbacks in case camera mode is slow */}
           {session && !session.completed && (
             <div className="w-full border-t border-slate-50 dark:border-slate-800/60 pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 font-medium">
@@ -607,7 +610,6 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800/85 p-6 shadow-xl space-y-5">
           <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight">智能检测设置 Panel</h3>
           
-          {/* Eye tested select */}
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">1. 选择测试眼 (Eye to test)</label>
             <div className="grid grid-cols-3 gap-1 bg-slate-50 dark:bg-slate-950 p-1 rounded-xl border border-slate-100 dark:border-slate-900/60">
@@ -629,7 +631,6 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
             </div>
           </div>
 
-          {/* Feedbacks mode select */}
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">2. 反馈识别模式 (Response Feedback)</label>
             <div className="grid grid-cols-3 gap-1 bg-slate-50 dark:bg-slate-950 p-1 rounded-xl border border-slate-100 dark:border-slate-900/60">
@@ -650,7 +651,6 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
             </div>
           </div>
 
-          {/* Distance measuring selection */}
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">3. 距离控制算法 (Distance)</label>
@@ -719,7 +719,9 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
             }}
             onEyeOcclusionUpdate={(occl) => setEyeOcclusion(occl)}
             onGestureDetected={(dir) => {
-              if (session && !session.completed && !isAnswering) {
+              // Get latest state from Ref to ensure we're not answering twice or in a completed session
+              const s = sessionRef.current;
+              if (s && !s.completed && !isAnsweringRef.current) {
                 handleUserAnswer(dir);
               }
             }}
@@ -727,7 +729,6 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
             feedbackMode={feedbackMode}
           />
 
-          {/* Voice Prompt box underneath camera */}
           {feedbackMode === FeedbackMode.Voice && (
             <div className={`p-3 rounded-2xl text-xs font-medium border transition-all ${isListeningVoice ? 'bg-indigo-50/50 text-indigo-600 border-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/35' : 'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-950 dark:text-slate-400 dark:border-slate-900'}`}>
               <div className="flex items-center gap-1.5">
@@ -738,7 +739,6 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
             </div>
           )}
 
-          {/* Visual Indicators on Occlusion and Calibration validation */}
           <div className="grid grid-cols-2 gap-3 pt-1">
             <div className={`p-3 rounded-2xl text-center border ${eyeOcclusion.left ? 'bg-emerald-50/30 border-emerald-100/40 dark:bg-emerald-950/10' : 'bg-slate-50/40 border-slate-100 dark:bg-slate-950/30'} dark:border-slate-800`}>
               <div className="text-[10px] text-slate-400 font-mono mb-1">左眼状态 (Left Eye)</div>

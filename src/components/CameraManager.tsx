@@ -261,7 +261,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
               const now = Date.now();
               if (!lastGestureRef.current || 
                   lastGestureRef.current.direction !== direction || 
-                  now - lastGestureRef.current.timestamp > 1500) {
+                  now - lastGestureRef.current.timestamp > 3000) {
                 lastGestureRef.current = { direction, timestamp: now };
                 onGestureDetected(direction);
               }
