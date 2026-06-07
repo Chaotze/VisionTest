@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import { Camera, CameraOff, VideoOff, Info, AlertCircle, RefreshCw } from 'lucide-react';
 import { FilesetResolver, FaceLandmarker, HandLandmarker } from '@mediapipe/tasks-vision';
-import { estimateDistanceCm, calculateEAR, detectPointingGesture } from '../utils/visionMath';
+import { estimateDistanceCm, calculateEAR, detectPointingGesture } from '../lib/visionMath';
 import { Direction, EyeToTest, FeedbackMode } from '../types';
 
 interface CameraManagerProps {
@@ -261,7 +261,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
               const now = Date.now();
               if (!lastGestureRef.current || 
                   lastGestureRef.current.direction !== direction || 
-                  now - lastGestureRef.current.timestamp > 3000) {
+                  now - lastGestureRef.current.timestamp > 2000) {
                 lastGestureRef.current = { direction, timestamp: now };
                 onGestureDetected(direction);
               }

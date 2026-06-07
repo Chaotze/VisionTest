@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'motion/react';
 import { 
   Play, Volume2, VolumeX, Keyboard, Mic, HelpCircle, 
   CheckCircle2, XCircle, RotateCcw, AlertTriangle, ArrowRight, Eye, ShieldAlert, Award,
@@ -13,7 +14,7 @@ import {
   TestStage, EyeToTest, FeedbackMode, Direction, 
   ACUITY_LEVELS, CalibrationData, TestSession 
 } from '../types';
-import { calculateOptotypeSizePx } from '../utils/visionMath';
+import { calculateOptotypeSizePx } from '../lib/visionMath';
 import CameraManager from './CameraManager';
 
 interface VisionTestProps {
@@ -303,7 +304,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
       setIsAnswering(false);
       isAnsweringRef.current = false;
       setAnswerResult(null);
-    }, 3000);
+    }, 2000);
   };
 
   // Handler Ref to allow Keyboard useEffect to be defined once without stale closures
@@ -482,23 +483,74 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                   <div className={`absolute inset-0 -m-8 rounded-full filter blur-xl opacity-20 animate-ping ${answerResult === 'correct' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                 )}
 
-                {/* Mathematically precise medical standard Tumbling E SVG */}
-                <div 
-                  id="tumbling-e-container"
-                  style={{
-                    width: `${calculatedSizePx}px`,
-                    height: `${calculatedSizePx}px`,
-                    transform: `rotate(${currentEDirection === Direction.Up ? 270 : currentEDirection === Direction.Down ? 90 : currentEDirection === Direction.Left ? 180 : 0}deg)`,
-                  }}
-                  className="transition-transform duration-150 ease-out select-none flex items-center justify-center"
-                >
-                  <svg 
-                    viewBox="0 0 5 5" 
-                    className="w-full h-full text-slate-900 dark:text-slate-100 fill-current"
+                {/* Show animated check/X icon when answering, otherwise show E */}
+                {answerResult ? (
+                  <div className="flex items-center justify-center">
+                    {answerResult === 'correct' ? (
+                      <svg
+                        width={60}
+                        height={60}
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-emerald-500"
+                      >
+                        <motion.path
+                          d="M4 12 9 17L20 6"
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{ pathLength: 1, opacity: 1 }}
+                          transition={{ duration: 0.4, ease: "easeInOut" }}
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        width={60}
+                        height={60}
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-rose-500"
+                      >
+                        <motion.path
+                          d="M18 6 6 18"
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{ pathLength: 1, opacity: 1 }}
+                          transition={{ duration: 0.4, ease: "easeInOut" }}
+                        />
+                        <motion.path
+                          d="m6 6 12 12"
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{ pathLength: 1, opacity: 1 }}
+                          transition={{ duration: 0.4, delay: 0.2, ease: "easeInOut" }}
+                        />
+                      </svg>
+                    )}
+                  </div>
+                ) : (
+                  /* Mathematically precise medical standard Tumbling E SVG */
+                  <div 
+                    id="tumbling-e-container"
+                    style={{
+                      width: `${calculatedSizePx}px`,
+                      height: `${calculatedSizePx}px`,
+                      transform: `rotate(${currentEDirection === Direction.Up ? 270 : currentEDirection === Direction.Down ? 90 : currentEDirection === Direction.Left ? 180 : 0}deg)`,
+                    }}
+                    className="transition-transform duration-150 ease-out select-none flex items-center justify-center"
                   >
-                    <path d="M 0 0 L 5 0 L 5 1 L 1 1 L 1 2 L 5 2 L 5 3 L 1 3 L 1 4 L 5 4 L 5 5 L 0 5 Z" />
-                  </svg>
-                </div>
+                    <svg 
+                      viewBox="0 0 5 5" 
+                      className="w-full h-full text-slate-900 dark:text-slate-100 fill-current"
+                    >
+                      <path d="M 0 0 L 5 0 L 5 1 L 1 1 L 1 2 L 5 2 L 5 3 L 1 3 L 1 4 L 5 4 L 5 5 L 0 5 Z" />
+                    </svg>
+                  </div>
+                )}
               </div>
             ) : session?.completed ? (
               // Results Display
