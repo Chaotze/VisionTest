@@ -249,21 +249,33 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
             drawHand(ctx, handPoints, width);
           }
 
-          // Detect Gesture Pointing (using the first hand)
-          const handPointsForGesture = handResults.landmarks[0];
-          const direction = detectPointingGesture(handPointsForGesture, true);
-          if (direction) {
+          // Detect Gesture Pointing (check all hands to support one hand covering eye while other gestures)
+          let detectedDirection: Direction | null = null;
+          let gestureHandIndex = -1;
+          
+          for (let i = 0; i < handResults.landmarks.length; i++) {
+            const handPoints = handResults.landmarks[i];
+            const direction = detectPointingGesture(handPoints, true);
+            if (direction) {
+              detectedDirection = direction;
+              gestureHandIndex = i;
+              break; // Use the first hand that makes a valid pointing gesture
+            }
+          }
+
+          if (detectedDirection && gestureHandIndex >= 0) {
+            const handPointsForGesture = handResults.landmarks[gestureHandIndex];
             // Draw gestured arrow
-            drawGestureArrow(ctx, handPointsForGesture[5], handPointsForGesture[8], direction, width);
+            drawGestureArrow(ctx, handPointsForGesture[5], handPointsForGesture[8], detectedDirection, width);
 
             // ONLY trigger selection if the feedback mode is set to Gesture
             if (feedbackMode === FeedbackMode.Gesture) {
               const now = Date.now();
               if (!lastGestureRef.current || 
-                  lastGestureRef.current.direction !== direction || 
+                  lastGestureRef.current.direction !== detectedDirection || 
                   now - lastGestureRef.current.timestamp > 2000) {
-                lastGestureRef.current = { direction, timestamp: now };
-                onGestureDetected(direction);
+                lastGestureRef.current = { direction: detectedDirection, timestamp: now };
+                onGestureDetected(detectedDirection);
               }
             }
           }

@@ -54,6 +54,8 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
   const sessionRef = useRef<TestSession | null>(null);
   const directionRef = useRef<Direction>(Direction.Right);
   const isAnsweringRef = useRef<boolean>(false);
+  const eyeOcclusionRef = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
+  const eyeTestedRef = useRef<EyeToTest>(EyeToTest.Right);
 
   // Synchronize actual distance
   useEffect(() => {
@@ -67,6 +69,11 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     sessionRef.current = session;
     isAnsweringRef.current = isAnswering;
   }, [session, isAnswering]);
+
+  useEffect(() => {
+    eyeOcclusionRef.current = eyeOcclusion;
+    eyeTestedRef.current = eyeTested;
+  }, [eyeOcclusion, eyeTested]);
 
   // Handle Speech Guidance Speak helper
   const speak = (text: string) => {
@@ -406,10 +413,13 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
 
   // Eye Occlusion validation check
   const isEyeOcclusionCorrect = (): boolean => {
-    if (eyeTested === EyeToTest.Right) {
-      return eyeOcclusion.left;
-    } else if (eyeTested === EyeToTest.Left) {
-      return eyeOcclusion.right;
+    const currentEyeTested = eyeTestedRef.current;
+    const currentEyeOcclusion = eyeOcclusionRef.current;
+    
+    if (currentEyeTested === EyeToTest.Right) {
+      return currentEyeOcclusion.left;
+    } else if (currentEyeTested === EyeToTest.Left) {
+      return currentEyeOcclusion.right;
     }
     return true; 
   };
