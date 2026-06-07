@@ -176,7 +176,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     rec.onresult = (event: any) => {
       const lastIndex = event.results.length - 1;
       const originalText = event.results[lastIndex][0].transcript.trim().toLowerCase();
-      setVoiceTranscript(`听到语音："${originalText}"`);
+      setVoiceTranscript(`${originalText}`);
 
       let identifiedDir: Direction | null = null;
       if (originalText.includes('上') || originalText.includes('向') && originalText.includes('上') || originalText.includes('shang') || originalText === 'up') {
@@ -227,7 +227,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     if (autoDistanceMode && !isEyeOcclusionCorrect()) {
       playSound('wrong');
       const targetEyeStr = eyeTested === EyeToTest.Right ? '左眼' : '右眼';
-      speak(`校准警报。测试的是${eyeTested === EyeToTest.Right ? '右眼' : '左眼'}，请您牢牢挡住${targetEyeStr}后再作答！`);
+      speak(`测试的是${eyeTested === EyeToTest.Right ? '右眼' : '左眼'}，请闭上或遮住${targetEyeStr}后再作答！`);
       toast.warning(`遮挡纠正警告`, { description: `请闭上或遮挡住 ${targetEyeStr} 后继续测试` });
       return;
     }
@@ -263,18 +263,18 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     if (correctCount >= 2) {
       if (currentSession.currentLevelIndex < ACUITY_LEVELS.length - 1) {
         nextLevelIndex = currentSession.currentLevelIndex + 1;
-        speak(`正确。升级进入 ${ACUITY_LEVELS[nextLevelIndex].fivePoint} 级别。`);
+        speak(`正确。进入${ACUITY_LEVELS[nextLevelIndex].fivePoint===5?'五点零':String(ACUITY_LEVELS[nextLevelIndex].fivePoint)}。`);
       } else {
         isCompleted = true;
         finalScore = ACUITY_LEVELS[currentSession.currentLevelIndex];
-        speak(`测试完成。您的视力达到上限 ${finalScore.fivePoint}！`);
+        speak(`测试完成。您的视力达到${finalScore.fivePoint===5?'五点零':String(finalScore.fivePoint)}！`);
         playSound('complete');
       }
     } else if (wrongCount >= 2) {
       isCompleted = true;
       const finalIndex = Math.max(0, currentSession.currentLevelIndex - 1);
       finalScore = ACUITY_LEVELS[finalIndex];
-      speak(`测试结束。您的测试视力得分为 ${finalScore.fivePoint}。`);
+      speak(`测试结束。您的视力测试结果为${finalScore.fivePoint===5?'五点零':String(finalScore.fivePoint)}。`);
       playSound('complete');
     } else {
       speak(isCorrect ? "正确" : "错误");
@@ -411,7 +411,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     setActiveTab('hud');
 
     const label = eyeTested === EyeToTest.Right ? '右眼视力，请挡住左眼' : eyeTested === EyeToTest.Left ? '左眼视力，请挡住右眼' : '双眼视力';
-    speak(`视力测试开始。当前检测为：${label}。请做出手势，或使用语音、键盘箭头控制。请看屏幕中央的字符，辨别其空缺的方向。`);
+    speak(`视力测试开始。当前测试${label}。请做出手势或使用语音，或键盘方向键作答。`);
   };
 
   const getRandomDirection = (): Direction => {
@@ -441,6 +441,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     }
     setSession(null);
     sessionRef.current = null;
+    speak('视力测试结束。');
   };
 
   const activeAcuity = session ? ACUITY_LEVELS[session.currentLevelIndex] : ACUITY_LEVELS[3];
