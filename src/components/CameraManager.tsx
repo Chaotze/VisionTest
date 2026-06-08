@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import { Camera, CameraOff, VideoOff, Info, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { BorderBeam } from 'border-beam';
 import { FilesetResolver, FaceLandmarker, HandLandmarker } from '@mediapipe/tasks-vision';
 import { estimateDistanceCm, calculateEAR, detectPointingGesture } from '../lib/visionMath';
 import { Direction, EyeToTest, FeedbackMode } from '../types';
@@ -57,14 +58,14 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
       try {
         setIsLoading(true);
         setLoadStatus('正在获取运行时组件(WASM) ...');
-        
+
         const filesetResolver = await FilesetResolver.forVisionTasks(
           '/mediapipe/tasks-vision/wasm'
         );
 
         if (!active) return;
         setLoadStatus('1/2 正在加载人脸测距与眼部状态诊断模型 ...');
-        
+
         const faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
           baseOptions: {
             modelAssetPath: '/mediapipe/face_landmarker.task',
@@ -77,7 +78,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
 
         if (!active) return;
         faceLandmarkerRef.current = faceLandmarker;
-        
+
         setLoadStatus('2/2 正在加载手部动作方向识别模型 ...');
         const handLandmarker = await HandLandmarker.createFromOptions(filesetResolver, {
           baseOptions: {
@@ -170,7 +171,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-    
+
     // Clear canvas
     const canvas = canvasRef.current;
     if (canvas) {
@@ -249,7 +250,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
           // Detect Gesture Pointing (check all hands to support one hand covering eye while other gestures)
           let detectedDirection: Direction | null = null;
           let gestureHandIndex = -1;
-          
+
           for (let i = 0; i < handResults.landmarks.length; i++) {
             const handPoints = handResults.landmarks[i];
             const direction = detectPointingGesture(handPoints, true);
@@ -268,9 +269,9 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
             // ONLY trigger selection if the feedback mode is set to Gesture
             if (feedbackMode === FeedbackMode.Gesture) {
               const now = Date.now();
-              if (!lastGestureRef.current || 
-                  lastGestureRef.current.direction !== detectedDirection || 
-                  now - lastGestureRef.current.timestamp > 2000) {
+              if (!lastGestureRef.current ||
+                lastGestureRef.current.direction !== detectedDirection ||
+                now - lastGestureRef.current.timestamp > 2000) {
                 lastGestureRef.current = { direction: detectedDirection, timestamp: now };
                 onGestureDetected(detectedDirection);
               }
@@ -330,7 +331,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
           if (detectedHandPoints.length > 0) {
             // Dynamic threshold scaled by the physical distance between pupil landmarks on screen (IPD scale)
             const pupilDist = Math.max(0.01, Math.sqrt(
-              (leftEyeCenter.x - rightEyeCenter.x) ** 2 + 
+              (leftEyeCenter.x - rightEyeCenter.x) ** 2 +
               (leftEyeCenter.y - rightEyeCenter.y) ** 2
             ));
             const coverThreshold = pupilDist * 0.85;
@@ -338,11 +339,11 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
             for (const pt of detectedHandPoints) {
               const dxLeft = pt.x - leftEyeCenter.x;
               const dyLeft = pt.y - leftEyeCenter.y;
-              const distLeft = Math.sqrt(dxLeft*dxLeft + dyLeft*dyLeft);
+              const distLeft = Math.sqrt(dxLeft * dxLeft + dyLeft * dyLeft);
 
               const dxRight = pt.x - rightEyeCenter.x;
               const dyRight = pt.y - rightEyeCenter.y;
-              const distRight = Math.sqrt(dxRight*dxRight + dyRight*dyRight);
+              const distRight = Math.sqrt(dxRight * dxRight + dyRight * dyRight);
 
               if (distLeft < coverThreshold) {
                 leftEyeCoveredByHand = true;
@@ -355,9 +356,9 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
 
           // Draw face markers (HUD)
           drawFaceDiagnostic(
-            ctx, 
-            landmarks, 
-            width, 
+            ctx,
+            landmarks,
+            width,
             leftEyeClosed || leftEyeCoveredByHand,
             rightEyeClosed || rightEyeCoveredByHand
           );
@@ -430,7 +431,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
     // Draw bounds for eyebrows & bridge to look stylish
     ctx.strokeStyle = 'rgba(99, 102, 241, 0.4)';
     ctx.lineWidth = 1.5;
-    
+
     // Draw simple eyebrows, chin trace
     const faceContourIndices = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109];
     ctx.beginPath();
@@ -549,7 +550,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
     ctx.strokeStyle = '#e11d48';
     ctx.lineWidth = 3;
     ctx.textAlign = 'center';
-    
+
     let label = '';
     switch (direction) {
       case Direction.Up: label = '👆 指向上 (UP)'; break;
@@ -564,13 +565,15 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
   return (
     <div className="w-full rounded-2xl overflow-hidden relative">
       {isLoading ? (
-        <div className="w-full max-h-[280px] aspect-video flex flex-col items-center justify-center bg-slate-950 p-6 text-center">
-          <RefreshCw className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
-          <div className="text-slate-200 font-medium mb-1">{loadStatus}</div>
-          <div className="text-slate-500 text-xs text-center max-w-sm">
-            AI 组件文件由 Google Cloud Storage 静态下发。首次加载可能需要 5-15 秒。
+        <BorderBeam>
+          <div className="w-full max-h-[280px] aspect-video flex flex-col items-center justify-center bg-slate-950 p-6 text-center">
+            <RefreshCw className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
+            <div className="text-slate-200 font-medium mb-1">{loadStatus}</div>
+            <div className="text-slate-500 text-xs text-center max-w-sm">
+              AI 组件文件由 Google Cloud Storage 静态下发。首次加载可能需要 5-15 秒。
+            </div>
           </div>
-        </div>
+        </BorderBeam>
       ) : (
         <div className="relative">
           {/* Active webcam stream element hidden visually but layout-active so browser plays stream */}
@@ -583,36 +586,37 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
           />
 
           {/* Canvas where composite mirroring and HUD overlays occur */}
-          <div className="relative w-full aspect-video overflow-hidden">
-            <canvas
-              ref={canvasRef}
-              className="w-full h-full object-cover"
-            />
+          <BorderBeam active={isStartingCamera}>
+            <div className="relative w-full aspect-video overflow-hidden">
+              <canvas
+                ref={canvasRef}
+                className="w-full h-full object-cover"
+              />
 
-            {/* Loading prompt when camera is starting */}
-            {isStartingCamera && (
-              <div className="absolute inset-0 bg-slate-50/80 rounded-2xl border border-slate-100 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
-                <RefreshCw className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
-                <div className="text-slate-600 font-semibold mb-1">正在启动相机 ...</div>
-                <div className="text-slate-400 text-xs text-center max-w-xs">
-                  请允许浏览器访问摄像头权限
+              {/* Loading prompt when camera is starting */}
+              {isStartingCamera && (
+                <div className="absolute inset-0 bg-slate-50/80 rounded-2xl border border-slate-100 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
+                  <RefreshCw className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
+                  <div className="text-slate-600 font-semibold mb-1">正在启动相机 ...</div>
+                  <div className="text-slate-400 text-xs text-center max-w-xs">
+                    请允许浏览器访问摄像头权限
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Prompt when camera permission is denied */}
-            {hasPermission === false && (
-              <div className="absolute inset-0 bg-slate-50/80 rounded-2xl border border-slate-100 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center space-y-3">
-                <VideoOff className="w-12 h-12 text-rose-500 mx-auto" />
-                <h4 className="text-slate-700 font-bold text-lg">相机访问被拒绝</h4>
-                <p className="text-slate-500 text-xs text-center max-w-xs">
-                  需要相机访问授权来自动估算<b>面部与屏幕距离</b>、检查您<b>是否捂住了一只眼</b>，及接收<b>手势划动字符反馈</b>。请在浏览器地址栏顶端恢复相机授权许可
-                </p>
-              </div>
-            )}
+              {/* Prompt when camera permission is denied */}
+              {hasPermission === false && (
+                <div className="absolute inset-0 bg-slate-50/80 rounded-2xl border border-slate-100 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center space-y-3">
+                  <VideoOff className="w-12 h-12 text-rose-500 mx-auto" />
+                  <h4 className="text-slate-700 font-bold text-lg">相机访问被拒绝</h4>
+                  <p className="text-slate-500 text-xs text-center max-w-xs">
+                    需要相机访问授权来自动估算<b>面部与屏幕距离</b>、检查您<b>是否捂住了一只眼</b>，及接收<b>手势划动字符反馈</b>。请在浏览器地址栏顶端恢复相机授权许可
+                  </p>
+                </div>
+              )}
 
-            {/* Float HUD Details */}
-            {/* {isCameraActive && (
+              {/* Float HUD Details */}
+              {/* {isCameraActive && (
               <div className="absolute top-4 left-4 right-4 flex justify-between gap-4 pointer-events-none">
                 <div className="bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-white font-mono text-xs flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -628,7 +632,8 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
               </div>
             )} */}
 
-          </div>
+            </div>
+          </BorderBeam>
         </div>
       )}
     </div>
