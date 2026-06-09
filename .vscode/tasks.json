@@ -33,7 +33,7 @@
         "-gcflags",
         "all=-N -l",
         "-o",
-        "build/bin/VISIONTEST"
+        "build/bin/visiontest"
       ]
     },
     {
@@ -68,7 +68,7 @@
         "-gcflags",
         "all=-N -l",
         "-o",
-        "build/bin/VISIONTEST"
+        "build/bin/visiontest"
       ]
     },
     {
@@ -103,7 +103,7 @@
         "-gcflags",
         "all=-N -l",
         "-o",
-        "build/bin/VISIONTEST"
+        "build/bin/visiontest"
       ]
     }
   ]

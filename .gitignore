@@ -1,8 +1,12 @@
-node_modules/
+.task/
+bindings/
 build/bin/
+build/linux/appimage/build/
+build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
 dist/
 coverage/
+node_modules/
 .DS_Store
-*.log
 .env*
 !.env.example
+*.log

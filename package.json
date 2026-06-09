@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host=0.0.0.0",
-    "build": "tsc && vite build",
+    "build:dev": "tsc && vite build --minify false --mode development",
+    "build": "tsc && vite build --mode production",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"

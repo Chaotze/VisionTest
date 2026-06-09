@@ -2,67 +2,33 @@
 <plist version="1.0">
     <dict>
         <key>CFBundlePackageType</key>
-        <string>APPL</string>
+            <string>APPL</string>
         <key>NSCameraUsageDescription</key>
-        <string>需要访问相机以便进行手势控制</string>
+            <string>需要访问相机以便进行手势控制</string>
         <key>NSMicrophoneUsageDescription</key>
-        <string>需要访问麦克风以便使用语音交互</string>
+            <string>需要访问麦克风以便使用语音交互</string>
         <key>CFBundleName</key>
-        <string>{{.Info.ProductName}}</string>
+            <string>VISIONTEST</string>
         <key>CFBundleExecutable</key>
-        <string>{{.OutputFilename}}</string>
+            <string>visiontest</string>
         <key>CFBundleIdentifier</key>
-        <string>{{.Info.Identifier}}</string>
+            <string>cn.chaotze.visiontest</string>
         <key>CFBundleVersion</key>
-        <string>{{.Info.ProductVersion}}</string>
+            <string>1.0.60606</string>
         <key>CFBundleGetInfoString</key>
-        <string>{{.Info.Comments}}</string>
+            <string>创新交互赋能视力筛查，守护清晰视界</string>
         <key>CFBundleShortVersionString</key>
-        <string>{{.Info.ProductVersion}}</string>
+            <string>1.0.60606</string>
         <key>CFBundleIconFile</key>
-        <string>iconfile</string>
+            <string>icons</string>
+        <key>CFBundleIconName</key>
+            <string>appicon</string>
         <key>LSMinimumSystemVersion</key>
-        <string>10.13.0</string>
+            <string>12.0.0</string>
         <key>NSHighResolutionCapable</key>
-        <string>true</string>
+            <string>true</string>
         <key>NSHumanReadableCopyright</key>
-        <string>{{.Info.Copyright}}</string>
-        {{if .Info.FileAssociations}}
-        <key>CFBundleDocumentTypes</key>
-        <array>
-          {{range .Info.FileAssociations}}
-          <dict>
-            <key>CFBundleTypeExtensions</key>
-            <array>
-              <string>{{.Ext}}</string>
-            </array>
-            <key>CFBundleTypeName</key>
-            <string>{{.Name}}</string>
-            <key>CFBundleTypeRole</key>
-            <string>{{.Role}}</string>
-            <key>CFBundleTypeIconFile</key>
-            <string>{{.IconName}}</string>
-          </dict>
-          {{end}}
-        </array>
-        {{end}}
-        {{if .Info.Protocols}}
-        <key>CFBundleURLTypes</key>
-        <array>
-          {{range .Info.Protocols}}
-            <dict>
-                <key>CFBundleURLName</key>
-                <string>com.wails.{{.Scheme}}</string>
-                <key>CFBundleURLSchemes</key>
-                <array>
-                    <string>{{.Scheme}}</string>
-                </array>
-                <key>CFBundleTypeRole</key>
-                <string>{{.Role}}</string>
-            </dict>
-          {{end}}
-        </array>
-        {{end}}
+            <string>Copyright © 2026 VISIONTEST. All rights reserved.</string>
         <key>NSAppTransportSecurity</key>
         <dict>
             <key>NSAllowsLocalNetworking</key>
