@@ -566,7 +566,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
     <div className="w-full rounded-2xl overflow-hidden relative">
       {isLoading ? (
         <BorderBeam>
-          <div className="w-full max-h-[280px] aspect-video flex flex-col items-center justify-center bg-slate-950 p-6 text-center">
+          <div className="w-full max-h-[280px] aspect-video bg-slate-50/80 rounded-2xl border border-slate-100 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
             <RefreshCw className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
             <div className="text-slate-200 font-medium mb-1">{loadStatus}</div>
             <div className="text-slate-500 text-xs text-center max-w-sm">
@@ -618,12 +618,12 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
               {/* Float HUD Details */}
               {/* {isCameraActive && (
               <div className="absolute top-4 left-4 right-4 flex justify-between gap-4 pointer-events-none">
-                <div className="bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-white font-mono text-xs flex items-center gap-2">
+                <div className="bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-white text-xs flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                   <span>AI 自动测距: <strong className="text-indigo-400 text-sm">{currentDistance}</strong> cm</span>
                 </div>
 
-                <div className="bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-white font-mono text-xs flex items-center gap-1.5">
+                <div className="bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-white text-xs flex items-center gap-1.5">
                   <Info className="w-3.5 h-3.5 text-indigo-400" />
                   <span>
                     测试眼: {eyeTested === EyeToTest.Right ? <strong className="text-emerald-400">右眼 (遮左眼)</strong> : eyeTested === EyeToTest.Left ? <strong className="text-emerald-400">左眼 (遮右眼)</strong> : <strong className="text-cyan-400">双眼同时</strong>}

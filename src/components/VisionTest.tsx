@@ -478,11 +478,11 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                   <span className="px-3 py-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold rounded-lg tracking-wider text-xs uppercase">
                     当前视力等级
                   </span>
-                  <span className="font-mono font-black text-slate-800 dark:text-slate-100 text-lg">
+                  <span className="font-black text-slate-800 dark:text-slate-100 text-lg">
                     {Number(activeAcuity.fivePoint).toFixed(1)}
                   </span>
                   <div className="flex items-center gap-1 bg-slate-100 rounded-lg px-2 py-1">
-                    <span className="font-mono text-slate-400 hover:text-slate-500 text-xs">
+                    <span className="text-slate-400 hover:text-slate-500 text-xs">
                       小数: {activeAcuity.decimal}，Snellen: {activeAcuity.snellen}
                     </span>
                   </div>
@@ -616,7 +616,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.3 }}
                   >
-                    <div className="text-6xl font-black bg-gradient-to-br from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent font-mono">
+                    <div className="text-6xl font-black bg-gradient-to-br from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
                       {session.finalScore ? Number(session.finalScore.fivePoint).toFixed(1) : '—'}
                     </div>
                   </motion.div>
@@ -626,7 +626,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.4 }}
-                    className="flex items-center justify-center gap-2 text-sm font-mono text-slate-500 dark:text-slate-400"
+                    className="flex items-center justify-center gap-2 text-sm text-slate-500 dark:text-slate-400"
                   >
                     <span>小数：{session.finalScore?.decimal}</span>
                     <span className="text-slate-300 dark:text-slate-600">|</span>
@@ -672,7 +672,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                 {feedbackMode === FeedbackMode.Keyboard && (
                   <div className="flex items-center text-xs text-slate-500 dark:text-slate-500 font-medium">
                     <Keyboard className="w-4 h-4 text-slate-500 mr-2" />
-                    <span>敲击键盘方向键 <kbd className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded border">↑</kbd> <kbd className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded border">↓</kbd> <kbd className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded border">←</kbd> <kbd className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded border">→</kbd> 或使用</span><span className="font-mono ml-1">WASD</span>
+                    <span>敲击键盘方向键 <kbd className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded border">↑</kbd> <kbd className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded border">↓</kbd> <kbd className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded border">←</kbd> <kbd className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded border">→</kbd> 或使用</span><span className="ml-1">WASD</span>
                   </div>
                 )}
 
@@ -817,7 +817,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                       </TabsTrigger>
                     </TabsList>
                     {/* <TabsContent value="auto" className="mt-2">
-                    <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-900/60 flex items-center justify-between text-xs font-mono text-slate-500 dark:text-slate-400">
+                    <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-900/60 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                       <span>当前 AI 抓拍人瞳测距:</span>
                       <span className="text-indigo-600 dark:text-indigo-400 font-black text-sm">{distanceCm} cm</span>
                     </div>
@@ -833,7 +833,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                           onChange={(e) => setManualDistanceCm(parseInt(e.target.value))}
                           className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-ew-resize accent-indigo-600"
                         />
-                        <div className="flex justify-between text-[13px] font-mono text-slate-400">
+                        <div className="flex justify-between text-[13px] text-slate-400">
                           <span>50 cm</span>
                           <span className="text-slate-600 font-bold"> {manualDistanceCm} cm</span>
                           <span>250 cm</span>
@@ -854,7 +854,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                     当前距离屏幕 {distanceCm} cm
                   </h4>
                   {autoDistanceMode && (
-                    <span className="text-[10px] px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100/30 rounded-full font-mono">
+                    <span className="text-[10px] px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100/30 rounded-full">
                       FaceMesh Live
                     </span>
                   )}

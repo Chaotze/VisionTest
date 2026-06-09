@@ -4,10 +4,9 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import {
   Eye, Sliders, Play, CheckCircle2, ShieldCheck, Sparkles,
-  HelpCircle, Monitor, BookOpen, Scaling, Cpu, MonitorDot
+  HelpCircle, Monitor, BookOpen, Scaling, Cpu, MonitorDot, LayoutGrid
 } from 'lucide-react';
 import { TestStage, CalibrationData } from './types';
 import CreditCardCalibrator from './components/CreditCardCalibrator';
@@ -23,6 +22,8 @@ export default function App() {
     cameraFocalLength: 1.0,
     isCalibrated: false
   });
+  const [isWails, setIsWails] = useState(false);
+  const [isDarwin, setIsDarwin] = useState(false);
 
   // Check localStorage for first run and calibration data
   useEffect(() => {
@@ -33,6 +34,12 @@ export default function App() {
     } else {
       setStage(TestStage.Calibrating);
     }
+
+    const userAgent = navigator.userAgent;
+    const wailsCheck = /wails.io/.test(userAgent);
+    const darwinCheck = /Macintosh|Mac OS X|Mac/.test(userAgent);
+    setIsWails(wailsCheck);
+    setIsDarwin(darwinCheck);
   }, []);
 
   // Save calibration data to localStorage
@@ -47,8 +54,14 @@ export default function App() {
 
       {/* HEADER BAR */}
       <header className="sticky top-0 z-30 bg-white/50 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/80 transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3.5 hover:opacity-80 transition-opacity">
+        <div className={`${isWails && isDarwin ? 'ml-16 mr-16' : 'max-w-7xl'} mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between`}>
+          <a
+            href="/"
+            className={`flex items-center gap-3.5 transition-opacity ${
+              isWails ? 'cursor-default' : 'hover:opacity-80 cursor-pointer'
+            }`}
+            onClick={(e) => isWails && e.preventDefault()}
+          >
             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-300 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
               <Eye className="w-5.5 h-5.5 stroke-[2.5]" />
             </div>
@@ -57,11 +70,11 @@ export default function App() {
                 AI 智慧测视力 <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-200/30">V2.0</span>
               </h1>
               <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-tight">基于 MediaPipe 计算机视觉与 WebSpeech 语音技术</span> */}
-              <h1 className="text-lg text-slate-900 dark:text-slate-100 flex items-center gap-1.5 select-none leading-none font-sans font-thin tracking-[0.3em] uppercase">
+              <h1 className="text-lg text-slate-900 dark:text-slate-100 flex items-center gap-1.5 select-none leading-none font-sans font-semilight tracking-[0.3em] uppercase">
                 VISIONTEST
               </h1>
             </div>
-          </Link>
+          </a>
 
           <div className="flex items-center gap-3">
             {/* <div className="hidden md:flex items-center gap-2">
@@ -82,12 +95,25 @@ export default function App() {
               <MonitorDot className="w-3.5 h-3.5 text-indigo-500" />
               <span className="hidden sm:inline">PPI 校准</span>
             </button>
+
+            {!isWails && (
+              <a
+                href="https://github.com/Chaotze/VisionTest/releases/latest"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-950/60 text-slate-500 dark:text-slate-350 rounded-xl border border-indigo-200/50 dark:border-indigo-800/50 text-xs transition"
+                title="下载桌面版应用"
+              >
+                <LayoutGrid className="w-3.5 h-3.5 text-indigo-500" />
+                <span className="hidden sm:inline">APP 下载</span>
+              </a>
+            )}
           </div>
         </div>
       </header>
 
       {/* CORE WORKSPACE CONTENT */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col items-center justify-center">
+      <main className={`flex-1 ${isWails ? '' : 'max-w-7xl'} w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col items-center justify-center`}>
 
         {/* WELCOMING PAGE */}
         {stage === TestStage.Welcome && (

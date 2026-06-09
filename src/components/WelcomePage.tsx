@@ -52,7 +52,7 @@ export default function WelcomePage({ calibration, onCalibrating, onTesting }: W
             <div className="space-y-2 mt-3">
               <div className="flex justify-between items-center text-xs">
                 <span className="text-slate-400">屏幕 PPI:</span>
-                <strong className="font-mono text-indigo-600 dark:text-indigo-400">
+                <strong className="text-indigo-600 dark:text-indigo-400">
                   {calibration.ppi}
                 </strong>
               </div>

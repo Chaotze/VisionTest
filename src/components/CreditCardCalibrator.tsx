@@ -57,7 +57,7 @@ export default function CreditCardCalibrator({
       {/* Calibration Box */}
       <BorderBeam className="mb-6" strength={0.5}>
         <div className="w-full min-h-[300px] bg-slate-50 dark:bg-slate-950 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-4 flex flex-col items-center justify-center relative">
-          <div className="absolute top-2 left-2.5 text-xs font-mono text-slate-400 dark:text-slate-500 flex items-center gap-1">
+          <div className="absolute top-2 left-2.5 text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
             {/* <HelpCircle className="w-3.5 h-3.5" /> */}
             拿出校园卡/身份证，贴在屏幕对应框上微调
           </div>
@@ -92,7 +92,7 @@ export default function CreditCardCalibrator({
 
             {/* Measurement Label */}
           </div>
-          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 font-mono text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap bg-slate-100 dark:bg-slate-900 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-800 flex items-center gap-1.5">
+          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap bg-slate-100 dark:bg-slate-900 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-800 flex items-center gap-1.5">
             <span>宽度 = 实物校园卡/身份证 (8.56 cm / 3.37")</span>
           </div>
         </div>
@@ -102,14 +102,14 @@ export default function CreditCardCalibrator({
       <div className="space-y-4 mb-6">
         <div className="flex justify-between items-center text-sm">
           <span className="font-semibold text-slate-600 dark:text-slate-300">调节宽度</span>
-          <span className="font-mono text-slate-500 dark:text-slate-400">
+          <span className="text-slate-500 dark:text-slate-400">
             {boxWidth} 像素 (PPI: {Math.round(boxWidth / CARD_REAL_WIDTH_INCHES)})
           </span>
         </div>
         <div className="flex items-center gap-4">
           <button
             onClick={() => setBoxWidth(prev => Math.max(60, prev - 1))}
-            className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all text-xl font-mono flex items-center justify-center border border-slate-200/50 dark:border-slate-800"
+            className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all text-xl flex items-center justify-center border border-slate-200/50 dark:border-slate-800"
           >
             -
           </button>
@@ -126,7 +126,7 @@ export default function CreditCardCalibrator({
 
           <button
             onClick={() => setBoxWidth(prev => Math.min(500, prev + 1))}
-            className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all text-xl font-mono flex items-center justify-center border border-slate-200/50 dark:border-slate-800"
+            className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all text-xl flex items-center justify-center border border-slate-200/50 dark:border-slate-800"
           >
             +
           </button>
