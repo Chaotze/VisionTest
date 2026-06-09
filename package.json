@@ -1,11 +1,11 @@
 {
-  "name": "vision-test",
+  "name": "visiontest",
   "private": true,
   "version": "1.0.60606",
   "type": "module",
   "scripts": {
     "dev": "vite --host=0.0.0.0",
-    "build": "vite build",
+    "build": "tsc && vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"
