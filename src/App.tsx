@@ -57,7 +57,7 @@ export default function App() {
                 AI 智慧测视力 <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-200/30">V2.0</span>
               </h1>
               <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-tight">基于 MediaPipe 计算机视觉与 WebSpeech 语音技术</span> */}
-              <h1 className="text-lg text-slate-900 dark:text-slate-100 flex items-center gap-1.5 select-none leading-none font-[Montserrat] font-thin tracking-[0.3em] uppercase">
+              <h1 className="text-lg text-slate-900 dark:text-slate-100 flex items-center gap-1.5 select-none leading-none font-sans font-thin tracking-[0.3em] uppercase">
                 VISIONTEST
               </h1>
             </div>
@@ -126,7 +126,7 @@ export default function App() {
       {/* FOOTER */}
       <footer className="py-4 border-t border-slate-200/50 dark:border-slate-850/80 bg-white/40 dark:bg-slate-900/40 text-center text-slate-400 dark:text-slate-500 text-[11px] font-semilight tracking-wide">
         <span>Copyright © 2026 </span>
-        <span className="font-semibold font-[Montserrat]">VISIONTEST</span>
+        <span className="font-semibold font-sans">VISIONTEST</span>
         <span>.&nbsp;&nbsp;保留所有权利。测试结果仅供日常预防护理，正规检查请前往三甲医院视光中心或眼科就诊。</span>
       </footer>
 
