@@ -196,6 +196,75 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
     setIsStartingCamera(false);
   };
 
+  // 辅助检测函数：支持手指单指指向或整体手掌方向识别
+  const detectPalmOrFingerGesture = (handPoints: any[]): Direction | null => {
+    // 1. 优先尝试原来的单指指向手势识别
+    const fingerDirection = detectPointingGesture(handPoints, true);
+    if (fingerDirection) {
+      return fingerDirection;
+    }
+
+    // 2. 若不属于单指手势，则判断是否为“手掌伸展开”的指向手势
+    // 判断手指（食指、中指、无名指、小指）是否伸展
+    const isExtended = (tipIdx: number, pipIdx: number, mcpIdx: number) => {
+      const tip = handPoints[tipIdx];
+      const pip = handPoints[pipIdx];
+      const mcp = handPoints[mcpIdx];
+      const wrist = handPoints[0];
+
+      const dTipWrist = Math.hypot(tip.x - wrist.x, tip.y - wrist.y);
+      const dMcpWrist = Math.hypot(mcp.x - wrist.x, mcp.y - wrist.y);
+      // 指尖到手腕的距离明显大于指根到手腕的距离，认为手指处于伸展状态
+      return dTipWrist > dMcpWrist * 1.15;
+    };
+
+    const indexExtended = isExtended(8, 6, 5);
+    const middleExtended = isExtended(12, 10, 9);
+    const ringExtended = isExtended(16, 14, 13);
+    const pinkyExtended = isExtended(20, 18, 17);
+
+    // 如果至少有3根手指伸展，则认为是伸开的手掌
+    const extendedCount = [indexExtended, middleExtended, ringExtended, pinkyExtended].filter(Boolean).length;
+    if (extendedCount >= 3) {
+      let dx = 0;
+      let dy = 0;
+      let count = 0;
+
+      // 累加所有伸展手指从指根（MCP）到指尖（Tip）的向量
+      const addVector = (tipIdx: number, mcpIdx: number) => {
+        dx += handPoints[tipIdx].x - handPoints[mcpIdx].x;
+        dy += handPoints[tipIdx].y - handPoints[mcpIdx].y;
+        count++;
+      };
+
+      if (indexExtended) addVector(8, 5);
+      if (middleExtended) addVector(12, 9);
+      if (ringExtended) addVector(16, 13);
+      if (pinkyExtended) addVector(20, 17);
+
+      if (count > 0) {
+        const avgDx = dx / count;
+        const avgDy = dy / count;
+        const length = Math.hypot(avgDx, avgDy);
+
+        // 确保向量有足够的位移，防止轻微抖动误触发
+        if (length > 0.06) {
+          // 根据主轴位移判断手掌的指向
+          if (Math.abs(avgDy) > Math.abs(avgDx) * 1.2) {
+            return avgDy < 0 ? Direction.Up : Direction.Down;
+          } else if (Math.abs(avgDx) > Math.abs(avgDy) * 1.2) {
+            // 在镜像画面下：
+            // 相机x坐标增加（avgDx > 0），在屏幕中代表手指向左（Screen Left）
+            // 相机x坐标减少（avgDx < 0），在屏幕中代表手指向右（Screen Right）
+            return avgDx > 0 ? Direction.Left : Direction.Right;
+          }
+        }
+      }
+    }
+
+    return null;
+  };
+
   // Processing loop that drives Face + Hand assessment frame-by-frame
   const processingLoop = async () => {
     // 3. 实时状态监测，若无活跃数据流则中止循环
@@ -254,73 +323,27 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
       let rightEyeClosed = false;
       let leftEyeCoveredByHand = false;
       let rightEyeCoveredByHand = false;
-      let detectedHandPoints: any[] = [];
 
-      // 1. Process Hands (always active to allow hand eye-occlusion checking regardless of input mode)
-      if (handLandmarkerRef.current) {
-        try {
-          const handResults = handLandmarkerRef.current.detectForVideo(video, timestamp);
-          if (handResults && handResults.landmarks && handResults.landmarks.length > 0) {
-            // Gather points from all hands detected (supporting up to 2 hands)
-            for (const handPoints of handResults.landmarks) {
-              detectedHandPoints.push(...handPoints);
-            }
+      let leftEyeCenter: any = null;
+      let rightEyeCenter: any = null;
+      let coverThreshold = 0.05;
+      let faceLandmarksToDraw: any[] | null = null;
 
-            // Draw Hand Landmarks for all detected hands so they get beautiful visual response
-            for (const handPoints of handResults.landmarks) {
-              drawHand(ctx, handPoints, width);
-            }
-
-            // Detect Gesture Pointing (check all hands to support one hand covering eye while other gestures)
-            let detectedDirection: Direction | null = null;
-            let gestureHandIndex = -1;
-
-            for (let i = 0; i < handResults.landmarks.length; i++) {
-              const handPoints = handResults.landmarks[i];
-              const direction = detectPointingGesture(handPoints, true);
-              if (direction) {
-                detectedDirection = direction;
-                gestureHandIndex = i;
-                break; // Use the first hand that makes a valid pointing gesture
-              }
-            }
-
-            if (detectedDirection && gestureHandIndex >= 0) {
-              const handPointsForGesture = handResults.landmarks[gestureHandIndex];
-              // Draw gestured arrow
-              drawGestureArrow(ctx, handPointsForGesture[5], handPointsForGesture[8], detectedDirection, width);
-
-              // ONLY trigger selection if the feedback mode is set to Gesture
-              if (feedbackMode === FeedbackMode.Gesture) {
-                const now = Date.now();
-                if (!lastGestureRef.current ||
-                  lastGestureRef.current.direction !== detectedDirection ||
-                  now - lastGestureRef.current.timestamp > 2000) {
-                  lastGestureRef.current = { direction: detectedDirection, timestamp: now };
-                  onGestureDetected(detectedDirection);
-                }
-              }
-            }
-          }
-        } catch (err) {
-          console.error('HandLandmarker processing error:', err);
-        }
-      }
-
-      // 2. Process Face Mesh (always active for distance and occlusion detection)
+      // 1. Process Face Mesh FIRST (so we have exact eye coordinates to filter covering hand gestures)
       if (faceLandmarkerRef.current) {
         try {
           const faceResults = faceLandmarkerRef.current.detectForVideo(video, timestamp);
           if (faceResults && faceResults.faceLandmarks && faceResults.faceLandmarks.length > 0) {
             faceDetailsDetected = true;
             const landmarks = faceResults.faceLandmarks[0];
+            faceLandmarksToDraw = landmarks;
 
             // Left/Right eye centers
-            const leftEyeCenter = {
+            leftEyeCenter = {
               x: (landmarks[362].x + landmarks[263].x) / 2,
               y: (landmarks[362].y + landmarks[263].y) / 2
             };
-            const rightEyeCenter = {
+            rightEyeCenter = {
               x: (landmarks[33].x + landmarks[133].x) / 2,
               y: (landmarks[33].y + landmarks[133].y) / 2
             };
@@ -351,45 +374,99 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
             leftEyeClosed = leftEAR < 0.17;
             rightEyeClosed = rightEAR < 0.17;
 
-            // Check if hand landmarks are close to iris centers
-            if (detectedHandPoints.length > 0) {
-              // Dynamic threshold scaled by the physical distance between pupil landmarks on screen (IPD scale)
-              const pupilDist = Math.max(0.01, Math.sqrt(
-                (leftEyeCenter.x - rightEyeCenter.x) ** 2 +
-                (leftEyeCenter.y - rightEyeCenter.y) ** 2
-              ));
-              const coverThreshold = pupilDist * 0.85;
-
-              for (const pt of detectedHandPoints) {
-                const dxLeft = pt.x - leftEyeCenter.x;
-                const dyLeft = pt.y - leftEyeCenter.y;
-                const distLeft = Math.sqrt(dxLeft * dxLeft + dyLeft * dyLeft);
-
-                const dxRight = pt.x - rightEyeCenter.x;
-                const dyRight = pt.y - rightEyeCenter.y;
-                const distRight = Math.sqrt(dxRight * dxRight + dyRight * dyRight);
-
-                if (distLeft < coverThreshold) {
-                  leftEyeCoveredByHand = true;
-                }
-                if (distRight < coverThreshold) {
-                  rightEyeCoveredByHand = true;
-                }
-              }
-            }
-
-            // Draw face markers (HUD)
-            drawFaceDiagnostic(
-              ctx,
-              landmarks,
-              width,
-              leftEyeClosed || leftEyeCoveredByHand,
-              rightEyeClosed || rightEyeCoveredByHand
-            );
+            // Dynamic threshold scaled by the physical distance between pupil landmarks on screen (IPD scale)
+            const pupilDist = Math.max(0.01, Math.sqrt(
+              (leftEyeCenter.x - rightEyeCenter.x) ** 2 +
+              (leftEyeCenter.y - rightEyeCenter.y) ** 2
+            ));
+            coverThreshold = pupilDist * 0.85;
           }
         } catch (err) {
           console.error('FaceLandmarker processing error:', err);
         }
+      }
+
+      // 2. Process Hands (always active to allow hand eye-occlusion checking and gestures)
+      let detectedDirection: Direction | null = null;
+      let gestureHandIndex = -1;
+
+      if (handLandmarkerRef.current) {
+        try {
+          const handResults = handLandmarkerRef.current.detectForVideo(video, timestamp);
+          if (handResults && handResults.landmarks && handResults.landmarks.length > 0) {
+
+            // 遍历检测到的每只手
+            for (let i = 0; i < handResults.landmarks.length; i++) {
+              const handPoints = handResults.landmarks[i];
+
+              // Draw Hand Landmarks for all detected hands
+              drawHand(ctx, handPoints, width);
+
+              // 检查这只手是否正在遮挡眼睛
+              let isThisHandCoveringEye = false;
+              if (leftEyeCenter && rightEyeCenter) {
+                for (const pt of handPoints) {
+                  const dxLeft = pt.x - leftEyeCenter.x;
+                  const dyLeft = pt.y - leftEyeCenter.y;
+                  const distLeft = Math.sqrt(dxLeft * dxLeft + dyLeft * dyLeft);
+
+                  const dxRight = pt.x - rightEyeCenter.x;
+                  const dyRight = pt.y - rightEyeCenter.y;
+                  const distRight = Math.sqrt(dxRight * dxRight + dyRight * dyRight);
+
+                  if (distLeft < coverThreshold) {
+                    leftEyeCoveredByHand = true;
+                    isThisHandCoveringEye = true;
+                  }
+                  if (distRight < coverThreshold) {
+                    rightEyeCoveredByHand = true;
+                    isThisHandCoveringEye = true;
+                  }
+                }
+              }
+
+              // 【核心限制】：仅在这只手没有遮挡任何眼睛时，才识别它的手势方向
+              if (!isThisHandCoveringEye && !detectedDirection) {
+                const direction = detectPalmOrFingerGesture(handPoints);
+                if (direction) {
+                  detectedDirection = direction;
+                  gestureHandIndex = i;
+                }
+              }
+            }
+
+            // 如果成功识别到有效手势，绘制箭头提示并发送回调
+            if (detectedDirection && gestureHandIndex >= 0) {
+              const handPointsForGesture = handResults.landmarks[gestureHandIndex];
+              // Draw gestured arrow
+              drawGestureArrow(ctx, handPointsForGesture[5], handPointsForGesture[8], detectedDirection, width);
+
+              // ONLY trigger selection if the feedback mode is set to Gesture
+              if (feedbackMode === FeedbackMode.Gesture) {
+                const now = Date.now();
+                if (!lastGestureRef.current ||
+                  lastGestureRef.current.direction !== detectedDirection ||
+                  now - lastGestureRef.current.timestamp > 2000) {
+                  lastGestureRef.current = { direction: detectedDirection, timestamp: now };
+                  onGestureDetected(detectedDirection);
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error('HandLandmarker processing error:', err);
+        }
+      }
+
+      // 3. Draw face diagnostics (HUD)
+      if (faceDetailsDetected && faceLandmarksToDraw) {
+        drawFaceDiagnostic(
+          ctx,
+          faceLandmarksToDraw,
+          width,
+          leftEyeClosed || leftEyeCoveredByHand,
+          rightEyeClosed || rightEyeCoveredByHand
+        );
       }
 
       // Determine aggregate occlusion status
@@ -398,7 +475,7 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
 
       onEyeOcclusionUpdate({ left: isLeftOccluded, right: isRightOccluded });
 
-      // 3. Clinical Warning Flags & Assist Guidance
+      // Clinical Warning Flags & Assist Guidance
       if (!faceDetailsDetected) {
         const msg = '未检测到面部，请确保光线充足并正对相机。';
         if (lastToastRef.current !== msg) {
