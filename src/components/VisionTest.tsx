@@ -456,6 +456,53 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
 
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col lg:flex-row gap-6 p-2">
+      {/* 嵌入局部高性能 CSS 动画，支持描边与透明度淡入双重动画 */}
+      <style>{`
+        /* 打勾动画：从 dashoffset=24 且不透明度为 0，渐变到完全显示 */
+        @keyframes drawCheck {
+          from {
+            stroke-dashoffset: 24;
+            opacity: 0;
+          }
+          to {
+            stroke-dashoffset: 0;
+            opacity: 1;
+          }
+        }
+        .animate-check {
+          stroke-dasharray: 24;
+          stroke-dashoffset: 24;
+          opacity: 0;
+          will-change: transform, opacity;
+          animation: drawCheck 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* 打叉动画：两条线分别从不透明度为 0，渐变到完全显示 */
+        @keyframes drawX {
+          from {
+            stroke-dashoffset: 20;
+            opacity: 0;
+          }
+          to {
+            stroke-dashoffset: 0;
+            opacity: 1;
+          }
+        }
+        .animate-x-line1 {
+          stroke-dasharray: 20;
+          stroke-dashoffset: 20;
+          opacity: 0;
+          will-change: transform, opacity;
+          animation: drawX 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-x-line2 {
+          stroke-dasharray: 20;
+          stroke-dashoffset: 20;
+          opacity: 0;
+          will-change: transform, opacity;
+          animation: drawX 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+        }
+      `}</style>
 
       {/* LEFT COLUMN: Test Console & Visualized E Card */}
       <div className="flex-1 flex flex-col gap-6">
@@ -531,11 +578,9 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                           strokeLinejoin="round"
                           className="text-emerald-500"
                         >
-                          <motion.path
+                          <path
                             d="M4 12 9 17L20 6"
-                            initial={{ pathLength: 0, opacity: 0 }}
-                            animate={{ pathLength: 1, opacity: 1 }}
-                            transition={{ duration: 0.4, ease: "easeInOut" }}
+                            className="animate-check"
                           />
                         </svg>
                       ) : (
@@ -550,17 +595,13 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                           strokeLinejoin="round"
                           className="text-rose-500"
                         >
-                          <motion.path
+                          <path
                             d="M18 6 6 18"
-                            initial={{ pathLength: 0, opacity: 0 }}
-                            animate={{ pathLength: 1, opacity: 1 }}
-                            transition={{ duration: 0.4, ease: "easeInOut" }}
+                            className="animate-x-line1"
                           />
-                          <motion.path
+                          <path
                             d="m6 6 12 12"
-                            initial={{ pathLength: 0, opacity: 0 }}
-                            animate={{ pathLength: 1, opacity: 1 }}
-                            transition={{ duration: 0.4, delay: 0.2, ease: "easeInOut" }}
+                            className="animate-x-line2"
                           />
                         </svg>
                       )}
@@ -748,10 +789,25 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                   ref={cameraRef}
                   onDistanceUpdate={(cm) => {
                     if (autoDistanceMode) {
-                      setDistanceCm(Math.round(cm));
+                      const rounded = Math.round(cm);
+                      setDistanceCm((prev) => {
+                        // 距离变化大于或等于 8 厘米时才触发状态更新，过滤相机抖动产生的高频重渲染
+                        if (Math.abs(prev - rounded) >= 8) {
+                          return rounded;
+                        }
+                        return prev;
+                      });
                     }
                   }}
-                  onEyeOcclusionUpdate={(occl) => setEyeOcclusion(occl)}
+                  onEyeOcclusionUpdate={(occl) => {
+                    setEyeOcclusion((prev) => {
+                      // 严格对比值变化，避免新对象引用导致相机在每一帧强制让组件重新渲染
+                      if (prev.left === occl.left && prev.right === occl.right) {
+                        return prev;
+                      }
+                      return occl;
+                    });
+                  }}
                   onGestureDetected={(dir) => {
                     // Get latest state from Ref to ensure we're not answering twice or in a completed session
                     const s = sessionRef.current;
