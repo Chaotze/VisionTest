@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
-import { Camera, CameraOff, VideoOff, Info, RefreshCw } from 'lucide-react';
+import { VideoOff, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { BorderBeam } from 'border-beam';
 import { FilesetResolver, FaceLandmarker, HandLandmarker } from '@mediapipe/tasks-vision';
@@ -49,6 +49,9 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
 
   const lastGestureRef = useRef<{ direction: Direction; timestamp: number } | null>(null);
   const lastToastRef = useRef<string | null>(null);
+
+  // 核心：严格控制 MediaPipe 帧时间戳单调递增
+  const lastTimestampRef = useRef<number>(0);
 
   // Initialize MediaPipe Models once
   useEffect(() => {
@@ -104,7 +107,8 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
 
     return () => {
       active = false;
-      // Don't stop camera - keep it running unless permission is denied
+      // 组件卸载时释放占用
+      stopCamera();
     };
   }, []);
 
@@ -118,7 +122,11 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
   }));
 
   const startCameraInternal = async () => {
-    // Don't stop camera - keep it running unless permission is denied
+    // 1. 防重入：若摄像头已经处于开启、启动中或已有流活跃，则直接跳过
+    if (isStartingCamera || (streamRef.current && streamRef.current.active && isCameraActive)) {
+      return;
+    }
+
     lastToastRef.current = null;
     toast.dismiss();
     setIsStartingCamera(true);
@@ -136,16 +144,14 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.addEventListener('loadeddata', onVideoLoaded);
-        // Explicitly play to kick off streaming inside iframe contexts and ensure prompt drawing
-        videoRef.current.play()
-          .then(() => {
-            // Don't set isStartingCamera to false here - let onVideoLoaded handle it
-            // when the video frame is actually ready to display
-          })
-          .catch(err => {
-            console.warn("Video playback was deferred/interrupted: ", err);
-          });
+
+        // 2. 清理历史事件绑定，避免重复触发，确保仅绑定一次
+        videoRef.current.removeEventListener('loadeddata', onVideoLoaded);
+        videoRef.current.addEventListener('loadeddata', onVideoLoaded, { once: true });
+
+        await videoRef.current.play().catch(err => {
+          console.warn("Video playback was deferred/interrupted: ", err);
+        });
       }
       setHasPermission(true);
       setIsCameraActive(true);
@@ -192,6 +198,11 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
 
   // Processing loop that drives Face + Hand assessment frame-by-frame
   const processingLoop = async () => {
+    // 3. 实时状态监测，若无活跃数据流则中止循环
+    if (!streamRef.current || !streamRef.current.active) {
+      return;
+    }
+
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas || video.paused || video.ended) {
@@ -199,9 +210,14 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
       return;
     }
 
-    const timestamp = performance.now();
     const width = video.videoWidth;
     const height = video.videoHeight;
+
+    // 4. 空帧拦截：在摄像头启动过渡期，避免无效的尺寸设置
+    if (width === 0 || height === 0) {
+      requestRef.current = requestAnimationFrame(processingLoop);
+      return;
+    }
 
     if (canvas.width !== width || canvas.height !== height) {
       canvas.width = width;
@@ -214,181 +230,195 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
       return;
     }
 
-    // Clear previous drawing
-    ctx.clearRect(0, 0, width, height);
+    // 5. 严格的时间戳单调递增保证机制（MediaPipe 必须项）
+    let timestamp = performance.now();
+    if (timestamp <= lastTimestampRef.current) {
+      timestamp = lastTimestampRef.current + 0.1;
+    }
+    lastTimestampRef.current = timestamp;
 
-    // If we have video frame, draw mirrored on canvas as user background feed
-    ctx.save();
-    ctx.translate(width, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(video, 0, 0, width, height);
-    ctx.restore();
+    try {
+      // Clear previous drawing
+      ctx.clearRect(0, 0, width, height);
 
-    let faceDetailsDetected = false;
-    let computedDistance = currentDistance;
-    let leftEyeClosed = false;
-    let rightEyeClosed = false;
-    let leftEyeCoveredByHand = false;
-    let rightEyeCoveredByHand = false;
-    let detectedHandPoints: any[] = [];
+      // If we have video frame, draw mirrored on canvas as user background feed
+      ctx.save();
+      ctx.translate(width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, width, height);
+      ctx.restore();
 
-    // 1. Process Hands (always active to allow hand eye-occlusion checking regardless of input mode)
-    if (handLandmarkerRef.current) {
-      try {
-        const handResults = handLandmarkerRef.current.detectForVideo(video, timestamp);
-        if (handResults && handResults.landmarks && handResults.landmarks.length > 0) {
-          // Gather points from all hands detected (supporting up to 2 hands)
-          for (const handPoints of handResults.landmarks) {
-            detectedHandPoints.push(...handPoints);
-          }
+      let faceDetailsDetected = false;
+      let computedDistance = currentDistance;
+      let leftEyeClosed = false;
+      let rightEyeClosed = false;
+      let leftEyeCoveredByHand = false;
+      let rightEyeCoveredByHand = false;
+      let detectedHandPoints: any[] = [];
 
-          // Draw Hand Landmarks for all detected hands so they get beautiful visual response
-          for (const handPoints of handResults.landmarks) {
-            drawHand(ctx, handPoints, width);
-          }
-
-          // Detect Gesture Pointing (check all hands to support one hand covering eye while other gestures)
-          let detectedDirection: Direction | null = null;
-          let gestureHandIndex = -1;
-
-          for (let i = 0; i < handResults.landmarks.length; i++) {
-            const handPoints = handResults.landmarks[i];
-            const direction = detectPointingGesture(handPoints, true);
-            if (direction) {
-              detectedDirection = direction;
-              gestureHandIndex = i;
-              break; // Use the first hand that makes a valid pointing gesture
+      // 1. Process Hands (always active to allow hand eye-occlusion checking regardless of input mode)
+      if (handLandmarkerRef.current) {
+        try {
+          const handResults = handLandmarkerRef.current.detectForVideo(video, timestamp);
+          if (handResults && handResults.landmarks && handResults.landmarks.length > 0) {
+            // Gather points from all hands detected (supporting up to 2 hands)
+            for (const handPoints of handResults.landmarks) {
+              detectedHandPoints.push(...handPoints);
             }
-          }
 
-          if (detectedDirection && gestureHandIndex >= 0) {
-            const handPointsForGesture = handResults.landmarks[gestureHandIndex];
-            // Draw gestured arrow
-            drawGestureArrow(ctx, handPointsForGesture[5], handPointsForGesture[8], detectedDirection, width);
+            // Draw Hand Landmarks for all detected hands so they get beautiful visual response
+            for (const handPoints of handResults.landmarks) {
+              drawHand(ctx, handPoints, width);
+            }
 
-            // ONLY trigger selection if the feedback mode is set to Gesture
-            if (feedbackMode === FeedbackMode.Gesture) {
-              const now = Date.now();
-              if (!lastGestureRef.current ||
-                lastGestureRef.current.direction !== detectedDirection ||
-                now - lastGestureRef.current.timestamp > 2000) {
-                lastGestureRef.current = { direction: detectedDirection, timestamp: now };
-                onGestureDetected(detectedDirection);
+            // Detect Gesture Pointing (check all hands to support one hand covering eye while other gestures)
+            let detectedDirection: Direction | null = null;
+            let gestureHandIndex = -1;
+
+            for (let i = 0; i < handResults.landmarks.length; i++) {
+              const handPoints = handResults.landmarks[i];
+              const direction = detectPointingGesture(handPoints, true);
+              if (direction) {
+                detectedDirection = direction;
+                gestureHandIndex = i;
+                break; // Use the first hand that makes a valid pointing gesture
+              }
+            }
+
+            if (detectedDirection && gestureHandIndex >= 0) {
+              const handPointsForGesture = handResults.landmarks[gestureHandIndex];
+              // Draw gestured arrow
+              drawGestureArrow(ctx, handPointsForGesture[5], handPointsForGesture[8], detectedDirection, width);
+
+              // ONLY trigger selection if the feedback mode is set to Gesture
+              if (feedbackMode === FeedbackMode.Gesture) {
+                const now = Date.now();
+                if (!lastGestureRef.current ||
+                  lastGestureRef.current.direction !== detectedDirection ||
+                  now - lastGestureRef.current.timestamp > 2000) {
+                  lastGestureRef.current = { direction: detectedDirection, timestamp: now };
+                  onGestureDetected(detectedDirection);
+                }
               }
             }
           }
+        } catch (err) {
+          console.error('HandLandmarker processing error:', err);
         }
-      } catch (err) {
-        console.error('HandLandmarker processing error:', err);
       }
-    }
 
-    // 2. Process Face Mesh (always active for distance and occlusion detection)
-    if (faceLandmarkerRef.current) {
-      try {
-        const faceResults = faceLandmarkerRef.current.detectForVideo(video, timestamp);
-        if (faceResults && faceResults.faceLandmarks && faceResults.faceLandmarks.length > 0) {
-          faceDetailsDetected = true;
-          const landmarks = faceResults.faceLandmarks[0];
+      // 2. Process Face Mesh (always active for distance and occlusion detection)
+      if (faceLandmarkerRef.current) {
+        try {
+          const faceResults = faceLandmarkerRef.current.detectForVideo(video, timestamp);
+          if (faceResults && faceResults.faceLandmarks && faceResults.faceLandmarks.length > 0) {
+            faceDetailsDetected = true;
+            const landmarks = faceResults.faceLandmarks[0];
 
-          // Left/Right eye centers
-          const leftEyeCenter = {
-            x: (landmarks[362].x + landmarks[263].x) / 2,
-            y: (landmarks[362].y + landmarks[263].y) / 2
-          };
-          const rightEyeCenter = {
-            x: (landmarks[33].x + landmarks[133].x) / 2,
-            y: (landmarks[33].y + landmarks[133].y) / 2
-          };
+            // Left/Right eye centers
+            const leftEyeCenter = {
+              x: (landmarks[362].x + landmarks[263].x) / 2,
+              y: (landmarks[362].y + landmarks[263].y) / 2
+            };
+            const rightEyeCenter = {
+              x: (landmarks[33].x + landmarks[133].x) / 2,
+              y: (landmarks[33].y + landmarks[133].y) / 2
+            };
 
-          // Left Eye points center & pupil tracking
-          const leftPupil = landmarks[473] || leftEyeCenter; // 473 exists in iris model 
-          const rightPupil = landmarks[468] || rightEyeCenter; // 468 exists in iris model
+            // Left Eye points center & pupil tracking
+            const leftPupil = landmarks[473] || leftEyeCenter; // 473 exists in iris model 
+            const rightPupil = landmarks[468] || rightEyeCenter; // 468 exists in iris model
 
-          // Compute Distance in cm
-          computedDistance = estimateDistanceCm(leftPupil, rightPupil, 1.0); // standard horizontal focal length scale
-          setCurrentDistance(Math.round(computedDistance));
-          onDistanceUpdate(computedDistance);
+            // Compute Distance in cm
+            computedDistance = estimateDistanceCm(leftPupil, rightPupil, 1.0); // standard horizontal focal length scale
+            setCurrentDistance(Math.round(computedDistance));
+            onDistanceUpdate(computedDistance);
 
-          // Detect Eye Aspects Ratio (EAR) for closures
-          const leftEAR = calculateEAR(
-            landmarks[362], landmarks[263], // corners
-            landmarks[386], landmarks[385], // top lid points
-            landmarks[374], landmarks[380]  // bottom lid points
-          );
+            // Detect Eye Aspects Ratio (EAR) for closures
+            const leftEAR = calculateEAR(
+              landmarks[362], landmarks[263], // corners
+              landmarks[386], landmarks[385], // top lid points
+              landmarks[374], landmarks[380]  // bottom lid points
+            );
 
-          const rightEAR = calculateEAR(
-            landmarks[33], landmarks[133], // corners
-            landmarks[159], landmarks[158], // top lid points
-            landmarks[145], landmarks[153]  // bottom lid points
-          );
+            const rightEAR = calculateEAR(
+              landmarks[33], landmarks[133], // corners
+              landmarks[159], landmarks[158], // top lid points
+              landmarks[145], landmarks[153]  // bottom lid points
+            );
 
-          // Standard blink thresholds for EAR (increased from 0.14 to 0.17 for better light/squint tolerance)
-          leftEyeClosed = leftEAR < 0.17;
-          rightEyeClosed = rightEAR < 0.17;
+            // Standard blink thresholds for EAR (increased from 0.14 to 0.17 for better light/squint tolerance)
+            leftEyeClosed = leftEAR < 0.17;
+            rightEyeClosed = rightEAR < 0.17;
 
-          // Check if hand landmarks are close to iris centers
-          if (detectedHandPoints.length > 0) {
-            // Dynamic threshold scaled by the physical distance between pupil landmarks on screen (IPD scale)
-            const pupilDist = Math.max(0.01, Math.sqrt(
-              (leftEyeCenter.x - rightEyeCenter.x) ** 2 +
-              (leftEyeCenter.y - rightEyeCenter.y) ** 2
-            ));
-            const coverThreshold = pupilDist * 0.85;
+            // Check if hand landmarks are close to iris centers
+            if (detectedHandPoints.length > 0) {
+              // Dynamic threshold scaled by the physical distance between pupil landmarks on screen (IPD scale)
+              const pupilDist = Math.max(0.01, Math.sqrt(
+                (leftEyeCenter.x - rightEyeCenter.x) ** 2 +
+                (leftEyeCenter.y - rightEyeCenter.y) ** 2
+              ));
+              const coverThreshold = pupilDist * 0.85;
 
-            for (const pt of detectedHandPoints) {
-              const dxLeft = pt.x - leftEyeCenter.x;
-              const dyLeft = pt.y - leftEyeCenter.y;
-              const distLeft = Math.sqrt(dxLeft * dxLeft + dyLeft * dyLeft);
+              for (const pt of detectedHandPoints) {
+                const dxLeft = pt.x - leftEyeCenter.x;
+                const dyLeft = pt.y - leftEyeCenter.y;
+                const distLeft = Math.sqrt(dxLeft * dxLeft + dyLeft * dyLeft);
 
-              const dxRight = pt.x - rightEyeCenter.x;
-              const dyRight = pt.y - rightEyeCenter.y;
-              const distRight = Math.sqrt(dxRight * dxRight + dyRight * dyRight);
+                const dxRight = pt.x - rightEyeCenter.x;
+                const dyRight = pt.y - rightEyeCenter.y;
+                const distRight = Math.sqrt(dxRight * dxRight + dyRight * dyRight);
 
-              if (distLeft < coverThreshold) {
-                leftEyeCoveredByHand = true;
-              }
-              if (distRight < coverThreshold) {
-                rightEyeCoveredByHand = true;
+                if (distLeft < coverThreshold) {
+                  leftEyeCoveredByHand = true;
+                }
+                if (distRight < coverThreshold) {
+                  rightEyeCoveredByHand = true;
+                }
               }
             }
+
+            // Draw face markers (HUD)
+            drawFaceDiagnostic(
+              ctx,
+              landmarks,
+              width,
+              leftEyeClosed || leftEyeCoveredByHand,
+              rightEyeClosed || rightEyeCoveredByHand
+            );
           }
-
-          // Draw face markers (HUD)
-          drawFaceDiagnostic(
-            ctx,
-            landmarks,
-            width,
-            leftEyeClosed || leftEyeCoveredByHand,
-            rightEyeClosed || rightEyeCoveredByHand
-          );
+        } catch (err) {
+          console.error('FaceLandmarker processing error:', err);
         }
-      } catch (err) {
-        console.error('FaceLandmarker processing error:', err);
+      }
+
+      // Determine aggregate occlusion status
+      const isLeftOccluded = leftEyeClosed || leftEyeCoveredByHand;
+      const isRightOccluded = rightEyeClosed || rightEyeCoveredByHand;
+
+      onEyeOcclusionUpdate({ left: isLeftOccluded, right: isRightOccluded });
+
+      // 3. Clinical Warning Flags & Assist Guidance
+      if (!faceDetailsDetected) {
+        const msg = '未检测到面部，请确保光线充足并正对相机。';
+        if (lastToastRef.current !== msg) {
+          lastToastRef.current = msg;
+          toast.warning(msg);
+        }
+      } else {
+        if (lastToastRef.current !== null) {
+          lastToastRef.current = null;
+          toast.dismiss();
+        }
+      }
+    } catch (globalErr) {
+      console.error('Global drawing loop error:', globalErr);
+    } finally {
+      // 6. 最终确保即便局部有任何未捕获错误，渲染循环也不会丢失
+      if (streamRef.current && streamRef.current.active) {
+        requestRef.current = requestAnimationFrame(processingLoop);
       }
     }
-
-    // Determine aggregate occlusion status
-    const isLeftOccluded = leftEyeClosed || leftEyeCoveredByHand;
-    const isRightOccluded = rightEyeClosed || rightEyeCoveredByHand;
-
-    onEyeOcclusionUpdate({ left: isLeftOccluded, right: isRightOccluded });
-
-    // 3. Clinical Warning Flags & Assist Guidance
-    if (!faceDetailsDetected) {
-      const msg = '未检测到面部，请确保光线充足并正对相机。';
-      if (lastToastRef.current !== msg) {
-        lastToastRef.current = msg;
-        toast.warning(msg);
-      }
-    } else {
-      if (lastToastRef.current !== null) {
-        lastToastRef.current = null;
-        toast.dismiss();
-      }
-    }
-
-    requestRef.current = requestAnimationFrame(processingLoop);
   };
 
   // Diagnostic face overlay rendering (cyan/orange/ruby lines depending on health states)
@@ -568,9 +598,9 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
         <BorderBeam>
           <div className="w-full max-h-[280px] aspect-video bg-slate-50/80 rounded-2xl border border-slate-100 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
             <RefreshCw className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
-            <div className="text-slate-200 font-medium mb-1">{loadStatus}</div>
+            <div className="text-slate-600 font-medium mb-1">{loadStatus}</div>
             <div className="text-slate-500 text-xs text-center max-w-sm">
-              AI 组件文件由 Google Cloud Storage 静态下发。首次加载可能需要 5-15 秒。
+              模型组件由 Google Cloud Storage 下发。首次加载可能需要 5-15 秒
             </div>
           </div>
         </BorderBeam>

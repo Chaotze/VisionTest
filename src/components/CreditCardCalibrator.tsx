@@ -39,7 +39,7 @@ export default function CreditCardCalibrator({
     onComplete({
       ppi: Math.round(ppi * 10) / 10,
       pixelToMm,
-      cameraFocalLength: 1.15, // standard default horizontal focal factor
+      cameraFocalLength: 1.0, // standard default horizontal focal factor
       isCalibrated: true
     });
   };
@@ -51,7 +51,7 @@ export default function CreditCardCalibrator({
         PPI 校准
       </h2>
       {/* <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 leading-relaxed">
-        为了保证物理视力表（E字符）在不同大小的显示器或笔记本上都具有<strong>极其标准、符合医学规范</strong>的真实尺寸，我们需要对您的屏幕进行一次简单校准。
+        为了保证物理视力表（E字符）在不同大小的显示器或笔记本上都具有<strong>极其标准、符合医学规范</strong>的真实尺寸，我们需要对您的屏幕进行一次简单校准
       </p> */}
 
       {/* Calibration Box */}

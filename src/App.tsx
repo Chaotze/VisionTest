@@ -28,7 +28,7 @@ export default function App() {
   // Check localStorage for first run and calibration data
   useEffect(() => {
     const savedCalibration = localStorage.getItem('visionCalibration');
-    
+
     if (savedCalibration) {
       setCalibration(JSON.parse(savedCalibration));
     } else {
@@ -57,9 +57,8 @@ export default function App() {
         <div className={`${isWails && isDarwin ? 'ml-16 mr-16' : 'max-w-7xl'} mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between`}>
           <a
             href="/"
-            className={`flex items-center gap-3.5 transition-opacity ${
-              isWails ? 'cursor-default' : 'hover:opacity-80 cursor-pointer'
-            }`}
+            className={`flex items-center gap-3.5 transition-opacity ${isWails ? 'cursor-default' : 'hover:opacity-80 cursor-pointer'
+              }`}
             onClick={(e) => isWails && e.preventDefault()}
           >
             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-300 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
@@ -153,7 +152,7 @@ export default function App() {
       <footer className="py-4 border-t border-slate-200/50 dark:border-slate-850/80 bg-white/40 dark:bg-slate-900/40 text-center text-slate-400 dark:text-slate-500 text-[11px] font-semilight tracking-wide">
         <span>Copyright © 2026 </span>
         <span className="font-semibold font-sans">VISIONTEST</span>
-        <span>.&nbsp;&nbsp;保留所有权利。测试结果仅供日常预防护理，正规检查请前往三甲医院视光中心或眼科就诊。</span>
+        <span>.&nbsp;&nbsp;保留所有权利。测试结果仅供日常预防护理，正规检查请前往三甲医院视光中心或眼科就诊</span>
       </footer>
 
       <Toaster position="top-center" />

@@ -383,9 +383,14 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     const initialIndex = 3;
     const randomDir = getRandomDirection();
 
-    // Auto-start camera in gesture mode
-    if (autoDistanceMode && cameraRef.current) {
-      cameraRef.current.startCamera();
+    // 1. 理顺相机唤醒逻辑：仅在不处于 HUD 标签时进行切换，由 tabs 绑定的机制触发 startCamera()
+    // 2. 若已经在 HUD 标签，则安全、无重复地补调用 startCamera 以避免冲突
+    if (activeTab !== 'hud') {
+      setActiveTab('hud');
+    } else {
+      if (autoDistanceMode && cameraRef.current) {
+        cameraRef.current.startCamera();
+      }
     }
 
     const newSession = {
@@ -407,9 +412,6 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     setIsAnswering(false);
     isAnsweringRef.current = false;
     setAnswerResult(null);
-
-    // Auto switch to HUD tab when test starts
-    setActiveTab('hud');
 
     const label = eyeTested === EyeToTest.Right ? '右眼视力，请挡住左眼' : eyeTested === EyeToTest.Left ? '左眼视力，请挡住右眼' : '双眼视力';
     speak(`视力测试开始。当前测试${label}。请做出手势或使用语音，或键盘方向键作答。`);
