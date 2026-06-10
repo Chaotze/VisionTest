@@ -1,4 +1,4 @@
-module VISIONTEST
+module visiontest
 
 go 1.25.0
 

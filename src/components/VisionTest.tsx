@@ -912,7 +912,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                     当前距离屏幕 {distanceCm} cm
                   </h4>
                   {autoDistanceMode && (
-                    <span className="text-[10px] px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100/30 rounded-full">
+                    <span className="text-[10px] font-[Montserrat_Variable] px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100/30 rounded-full">
                       FaceMesh Live
                     </span>
                   )}

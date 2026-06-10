@@ -6,10 +6,10 @@ version: '3'
 # This information is used to generate the build assets.
 info:
   companyName: "Chaotze" # The name of the company
-  productName: "VISIONTEST" # The name of the application
+  productName: "VisionTest" # The name of the application
   productIdentifier: "cn.chaotze.visiontest" # The unique product identifier
   description: "创新交互赋能视力筛查，守护清晰视界" # The application description
-  copyright: "Copyright © 2026 VISIONTEST. All rights reserved." # Copyright text
+  copyright: "Copyright © 2026 VisionTest. All rights reserved." # Copyright text
   version: "1.0.60606" # The application version
   # comments: "Some Product Comments" # Comments
   # cfBundleIconName: "appicon" # The macOS icon name in Assets.car icon bundles (optional)
@@ -22,7 +22,7 @@ info:
 #   # The iOS bundle identifier used in the generated Xcode project (CFBundleIdentifier)
 #   bundleID: "cn.chaotze.visiontest"
 #   # The display name shown under the app icon (CFBundleDisplayName/CFBundleName)
-#   displayName: "VISIONTEST"
+#   displayName: "VisionTest"
 #   # The app version to embed in Info.plist (CFBundleShortVersionString/CFBundleVersion)
 #   version: "1.0.60606"
 #   # The company/organisation name for templates and project settings

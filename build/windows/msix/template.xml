@@ -13,8 +13,8 @@
         InstallLocation="C:\Program Files\{{.Info.CompanyName}}\{{.Info.ProductName}}">
     </Installer>
     <PackageInformation
-        PackageName="VISIONTEST"
-        PackageDisplayName="VISIONTEST"
+        PackageName="VisionTest"
+        PackageDisplayName="VisionTest"
         PublisherName="CN=Chaotze"
         PublisherDisplayName="Chaotze"
         Version="1.0.60606.0"
@@ -27,7 +27,7 @@
             <Application
                 Id="cn.chaotze.visiontest"
                 Description="创新交互赋能视力筛查，守护清晰视界"
-                DisplayName="VISIONTEST"
+                DisplayName="VisionTest"
                 ExecutableName="visiontest"
                 EntryPoint="Windows.FullTrustApplication">
                 
@@ -41,7 +41,7 @@
         </Dependencies>
         <Properties>
             <Framework>false</Framework>
-            <DisplayName>VISIONTEST</DisplayName>
+            <DisplayName>VisionTest</DisplayName>
             <PublisherDisplayName>Chaotze</PublisherDisplayName>
             <Description>创新交互赋能视力筛查，守护清晰视界</Description>
             <Logo>Assets\AppIcon.png</Logo>

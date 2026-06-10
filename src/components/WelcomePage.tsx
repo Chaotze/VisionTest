@@ -125,7 +125,7 @@ export default function WelcomePage({ calibration, onCalibrating, onTesting }: W
           <BookOpen className="w-6 h-6 animate-pulse" />
         </div>
         <div className="space-y-1.5">
-          <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">视光学标准科普小帮手 (Standardized Vision Testing)</h4>
+          <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">视光学标准科普小帮手 (Standardized VisionTesting)</h4>
           <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
             中国常用的 <b>5分记录法视力表</b> (国家推荐标准 GB 11533-2011) 理论起点为 1分视角值。根据医学公式，受测试距离只要在 1 米到 5 米内，视标高度比率都是严格呈反比例线性递减。
             本系统通过银行卡物理尺寸测出您屏幕的<b>精确物理点距 PPI</b>，再通过人脸网格测出<b>头部与电脑的距离</b>，从而在逻辑层通过实时物理公式输出完美合规尺寸，精度误差 ≤0.2mm，测试具有权威参考价值。

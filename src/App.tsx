@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import {
   Eye, Sliders, Play, CheckCircle2, ShieldCheck, Sparkles,
-  HelpCircle, Monitor, BookOpen, Scaling, Cpu, MonitorDot, LayoutGrid
+  HelpCircle, Monitor, BookOpen, Scaling, Cpu, MonitorDot, Download
 } from 'lucide-react';
 import { TestStage, CalibrationData } from './types';
 import CreditCardCalibrator from './components/CreditCardCalibrator';
@@ -69,8 +69,8 @@ export default function App() {
                 AI 智慧测视力 <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-200/30">V2.0</span>
               </h1>
               <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-tight">基于 MediaPipe 计算机视觉与 WebSpeech 语音技术</span> */}
-              <h1 className="text-lg text-slate-900 dark:text-slate-100 flex items-center gap-1.5 select-none leading-none font-sans font-semilight tracking-[0.3em] uppercase">
-                VISIONTEST
+              <h1 className="text-lg text-slate-900 dark:text-slate-100 flex items-center gap-1.5 select-none leading-none font-[Montserrat_Variable] font-semilight tracking-[0.3em] uppercase">
+                VisionTest
               </h1>
             </div>
           </a>
@@ -101,9 +101,9 @@ export default function App() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-950/60 text-slate-500 dark:text-slate-350 rounded-xl border border-indigo-200/50 dark:border-indigo-800/50 text-xs transition"
-                title="下载桌面版应用"
+                title="下载 VisionTest"
               >
-                <LayoutGrid className="w-3.5 h-3.5 text-indigo-500" />
+                <Download className="w-3.5 h-3.5 text-indigo-500" />
                 <span className="hidden sm:inline">APP 下载</span>
               </a>
             )}
@@ -149,9 +149,9 @@ export default function App() {
       </main>
 
       {/* FOOTER */}
-      <footer className="py-4 border-t border-slate-200/50 dark:border-slate-850/80 bg-white/40 dark:bg-slate-900/40 text-center text-slate-400 dark:text-slate-500 text-[11px] font-semilight tracking-wide">
-        <span>Copyright © 2026 </span>
-        <span className="font-semibold font-sans">VISIONTEST</span>
+      <footer className="p-4 border-t border-slate-200/50 dark:border-slate-850/80 bg-white/40 dark:bg-slate-900/40 text-center text-slate-400 dark:text-slate-500 text-[11px] font-semilight tracking-wide">
+        <span className="font-[Montserrat_Variable]">Copyright © 2026 </span>
+        <span className="font-[Montserrat_Variable] font-semibold">VisionTest</span>
         <span>.&nbsp;&nbsp;保留所有权利。测试结果仅供日常预防护理，正规检查请前往三甲医院视光中心或眼科就诊</span>
       </footer>
 

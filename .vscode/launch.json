@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Wails: Production VISIONTEST",
+      "name": "Wails: Production VisionTest",
       "type": "go",
       "request": "launch",
       "mode": "exec",
@@ -11,7 +11,7 @@
       "cwd": "${workspaceFolder}"
     },
     {
-      "name": "Wails: Debug VISIONTEST",
+      "name": "Wails: Debug VisionTest",
       "type": "go",
       "request": "launch",
       "mode": "exec",
@@ -20,7 +20,7 @@
       "cwd": "${workspaceFolder}"
     },
     {
-      "name": "Wails: Dev VISIONTEST",
+      "name": "Wails: Dev VisionTest",
       "type": "go",
       "request": "launch",
       "mode": "exec",
