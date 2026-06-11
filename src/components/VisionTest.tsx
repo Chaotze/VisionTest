@@ -307,7 +307,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
       setIsAnswering(false);
       isAnsweringRef.current = false;
       setAnswerResult(null);
-    }, 1800);
+    }, 880);
   };
 
   // Handler Ref to allow Keyboard useEffect to be defined once without stale closures

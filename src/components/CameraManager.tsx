@@ -394,15 +394,14 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
         try {
           const handResults = handLandmarkerRef.current.detectForVideo(video, timestamp);
           if (handResults && handResults.landmarks && handResults.landmarks.length > 0) {
+            let detectedDirection = null;
+            let gestureHandIndex = -1;
 
             // 遍历检测到的每只手
             for (let i = 0; i < handResults.landmarks.length; i++) {
               const handPoints = handResults.landmarks[i];
 
-              // Draw Hand Landmarks for all detected hands
-              drawHand(ctx, handPoints, width);
-
-              // 检查这只手是否正在遮挡眼睛
+              // 1. 先检测是否遮挡眼睛
               let isThisHandCoveringEye = false;
               if (leftEyeCenter && rightEyeCenter) {
                 for (const pt of handPoints) {
@@ -425,33 +424,63 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
                 }
               }
 
-              // 【核心限制】：仅在这只手没有遮挡任何眼睛时，才识别它的手势方向
-              if (!isThisHandCoveringEye && !detectedDirection) {
-                const direction = detectPalmOrFingerGesture(handPoints);
-                if (direction) {
-                  detectedDirection = direction;
-                  gestureHandIndex = i;
+              // 2. 不遮挡眼睛才绘制手部、检测方向
+              if (!isThisHandCoveringEye) {
+                // 绘制手部关键点
+                drawHand(ctx, handPoints, width);
+
+                // 若当前帧还未锁定主手势，则进行手势识别
+                if (!detectedDirection) {
+                  const direction = detectPalmOrFingerGesture(handPoints);
+                  if (direction) {
+                    detectedDirection = direction;
+                    gestureHandIndex = i;
+                  }
                 }
               }
             }
 
-            // 如果成功识别到有效手势，绘制箭头提示并发送回调
+            // 3. 检测到方向即绘制箭头（保证视觉流畅）
             if (detectedDirection && gestureHandIndex >= 0) {
               const handPointsForGesture = handResults.landmarks[gestureHandIndex];
-              // Draw gestured arrow
+              // 实时绘制箭头
               drawGestureArrow(ctx, handPointsForGesture[5], handPointsForGesture[8], detectedDirection, width);
 
-              // ONLY trigger selection if the feedback mode is set to Gesture
+              // 4. 判断该方向是否持续满 1 秒后再触发回调
               if (feedbackMode === FeedbackMode.Gesture) {
                 const now = Date.now();
-                if (!lastGestureRef.current ||
-                  lastGestureRef.current.direction !== detectedDirection ||
-                  now - lastGestureRef.current.timestamp > 2000) {
-                  lastGestureRef.current = { direction: detectedDirection, timestamp: now };
-                  onGestureDetected(detectedDirection);
+
+                // 如果之前没有记录手势，或者当前手势方向改变了，则重新初始化计时
+                if (!lastGestureRef.current || lastGestureRef.current.direction !== detectedDirection) {
+                  lastGestureRef.current = {
+                    direction: detectedDirection,
+                    startTime: now,
+                    triggered: false
+                  };
+                } else {
+                  // 方向相同，计算持续时间
+                  const duration = now - lastGestureRef.current.startTime;
+
+                  // 持续时间大于等于 1000ms，且在此次持续过程中尚未触发过回调
+                  if (duration >= 1000 && !lastGestureRef.current.triggered) {
+                    lastGestureRef.current.triggered = true; // 标记已触发，避免后续帧重复触发
+                    onGestureDetected(detectedDirection);
+                  }
+
+                  // 持续时间大于等于 2500ms
+                  if (duration >= 2500) {
+                    lastGestureRef.current.triggered = false;
+                    lastGestureRef.current.startTime = now; // 重置开始时间
+                  }
                 }
               }
+            } else {
+              // 如果当前帧没有检测到任何有效手势，重置手势记录状态
+              lastGestureRef.current = null;
             }
+          } else {
+            // 未检测到手时，也重置手势记录状态
+            lastGestureRef.current = null;
           }
         } catch (err) {
           console.error('HandLandmarker processing error:', err);
