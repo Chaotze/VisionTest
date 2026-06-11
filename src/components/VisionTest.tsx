@@ -86,7 +86,6 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'zh-CN';
-      utterance.rate = 1.05;
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -275,7 +274,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
       isCompleted = true;
       const finalIndex = Math.max(0, currentSession.currentLevelIndex - 1);
       finalScore = ACUITY_LEVELS[finalIndex];
-      speak(`测试结束。您的视力测试结果为${finalScore.fivePoint === 5 ? '五点零' : String(finalScore.fivePoint)}。`);
+      speak(`测试结束。您的视力为${finalScore.fivePoint === 5 ? '五点零' : String(finalScore.fivePoint)}。`);
       playSound('complete');
     } else {
       speak(isCorrect ? "正确" : "错误");
@@ -414,7 +413,8 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     setAnswerResult(null);
 
     const label = eyeTested === EyeToTest.Right ? '右眼视力，请挡住左眼' : eyeTested === EyeToTest.Left ? '左眼视力，请挡住右眼' : '双眼视力';
-    speak(`视力测试开始。当前测试${label}。请做出手势或使用语音，或键盘方向键作答。`);
+    const action = feedbackMode === FeedbackMode.Gesture ? '手势或' : feedbackMode === FeedbackMode.Voice ? '语音或' : '';
+    speak(`视力测试开始。当前测试${label}。请使用${action}键盘方向键作答。`);
   };
 
   const getRandomDirection = (): Direction => {
@@ -791,8 +791,8 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                     if (autoDistanceMode) {
                       const rounded = Math.round(cm);
                       setDistanceCm((prev) => {
-                        // 距离变化大于或等于 8 厘米时才触发状态更新，过滤相机抖动产生的高频重渲染
-                        if (Math.abs(prev - rounded) >= 8) {
+                        // 距离变化大于或等于 1 厘米时才触发状态更新，过滤相机抖动产生的高频重渲染
+                        if (Math.abs(prev - rounded) >= 1) {
                           return rounded;
                         }
                         return prev;
