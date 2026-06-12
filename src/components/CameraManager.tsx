@@ -461,14 +461,14 @@ const CameraManager = forwardRef<CameraManagerRef, CameraManagerProps>(({
                   // 方向相同，计算持续时间
                   const duration = now - lastGestureRef.current.startTime;
 
-                  // 持续时间大于等于 1000ms，且在此次持续过程中尚未触发过回调
-                  if (duration >= 1000 && !lastGestureRef.current.triggered) {
+                  // 持续时间大于等于 800ms，且在此次持续过程中尚未触发过回调
+                  if (duration >= 800 && !lastGestureRef.current.triggered) {
                     lastGestureRef.current.triggered = true; // 标记已触发，避免后续帧重复触发
                     onGestureDetected(detectedDirection);
                   }
 
-                  // 持续时间大于等于 2500ms
-                  if (duration >= 2500) {
+                  // 持续时间大于等于 2400ms
+                  if (duration >= 2400) {
                     lastGestureRef.current.triggered = false;
                     lastGestureRef.current.startTime = now; // 重置开始时间
                   }

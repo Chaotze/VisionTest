@@ -8,7 +8,7 @@ import { motion } from 'motion/react';
 import {
   Play, Volume2, VolumeX, Keyboard, Mic, HelpCircle,
   CheckCircle2, XCircle, RotateCcw, AlertTriangle, ArrowRight, Eye, ShieldAlert, Award,
-  Camera, CameraOff, Settings2, HandFist, Bolt, ScanEye, Pointer, Check, Undo2, CheckCircle,
+  Camera, CameraOff, Settings2, HandFist, Bolt, ScanEye, Pointer, Check, Undo2, CheckCircle, AudioLines,
   Activity
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -704,11 +704,18 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
             </div>
 
             {session && !session.completed ? (
-              <div className="w-full h-8 border-t border-slate-50 dark:border-slate-800/60 pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="w-full h-8 border-t border-slate-50 dark:border-slate-800/60 pt-4 flex flex-col sm:flex-row items-center justify-between gap-1">
                 {feedbackMode === FeedbackMode.Gesture && (
                   <div className="flex items-center text-xs text-slate-500 dark:text-slate-500 font-medium">
                     <Pointer className="w-4 h-4 text-slate-500 mr-2" />
-                    <span>用<b> 食指 </b>指示方向，手背朝屏可提高识别正确率</span>
+                    <span>用手势指示相应方向并<b>持续 1 秒</b>，可提高识别正确率</span>
+                  </div>
+                )}
+
+                {feedbackMode === FeedbackMode.Voice && (
+                  <div className="flex items-center text-xs text-slate-500 dark:text-slate-500 font-medium">
+                    <AudioLines className="w-4 h-4 text-slate-500 mr-2" />
+                    <span>请说出 E 字符缺口所指的方向</span>
                   </div>
                 )}
 
@@ -722,7 +729,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                 {session && (
                   <button
                     onClick={handleStopTest}
-                    className="absolute right-6 text-xs text-rose-500 hover:text-rose-600 font-semibold flex items-center gap-1 transition px-3 py-1.5 hover:bg-rose-50 dark:hover:bg-rose-955/20 rounded-full"
+                    className="text-xs text-rose-500 hover:text-rose-600 font-semibold flex items-center gap-1 transition px-3 py-1.5 hover:bg-rose-100/50 dark:hover:bg-rose-955/20 rounded-full"
                   >
                     结束测试
                   </button>
@@ -843,17 +850,17 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
 
                 <div className="space-y-2">
                   <label className="text-xs font-semibold uppercase text-slate-600 dark:text-slate-500 tracking-wider block">反馈识别模式 (Response Feedback)</label>
-                  <Tabs value={feedbackMode} onValueChange={(value) => setFeedbackMode(value as FeedbackMode)} disabled={session !== null && !session.completed}>
+                  <Tabs value={feedbackMode} onValueChange={(value) => setFeedbackMode(value as FeedbackMode)}>
                     <TabsList className="w-full">
-                      <TabsTrigger value={FeedbackMode.Gesture} disabled={session !== null && !session.completed} className="flex items-center gap-1 py-2.5">
+                      <TabsTrigger value={FeedbackMode.Gesture} className="flex items-center gap-1 py-2.5">
                         <HandFist className="w-4 h-4" />
                         <span className="whitespace-nowrap">手势</span>
                       </TabsTrigger>
-                      <TabsTrigger value={FeedbackMode.Voice} disabled={session !== null && !session.completed} className="flex items-center gap-1 py-2.5">
+                      <TabsTrigger value={FeedbackMode.Voice} className="flex items-center gap-1 py-2.5">
                         <Mic className="w-4 h-4" />
                         <span className="whitespace-nowrap">语音</span>
                       </TabsTrigger>
-                      <TabsTrigger value={FeedbackMode.Keyboard} disabled={session !== null && !session.completed} className="flex items-center gap-1 py-2.5">
+                      <TabsTrigger value={FeedbackMode.Keyboard} className="flex items-center gap-1 py-2.5">
                         <Keyboard className="w-4 h-4" />
                         <span className="whitespace-nowrap">键盘</span>
                       </TabsTrigger>
@@ -863,13 +870,13 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
 
                 <div className="space-y-2">
                   <label className="text-xs font-semibold uppercase text-slate-600 dark:text-slate-500 tracking-wider block">距离检测方式 (Distance Detection)</label>
-                  <Tabs value={autoDistanceMode ? 'auto' : 'manual'} onValueChange={(value) => setAutoDistanceMode(value === 'auto')} disabled={session !== null && !session.completed}>
+                  <Tabs value={autoDistanceMode ? 'auto' : 'manual'} onValueChange={(value) => setAutoDistanceMode(value === 'auto')}>
                     <TabsList className="w-full">
-                      <TabsTrigger value="auto" disabled={session !== null && !session.completed} className="flex items-center gap-2 py-2">
+                      <TabsTrigger value="auto" className="flex items-center gap-2 py-2">
                         <span className="font-semibold">AI</span>
                         <span>自动测距</span>
                       </TabsTrigger>
-                      <TabsTrigger value="manual" disabled={session !== null && !session.completed} className="flex items-center gap-2 py-2">
+                      <TabsTrigger value="manual" className="flex items-center gap-2 py-2">
                         <Bolt className="w-4 h-4" />
                         <span>固定距离</span>
                       </TabsTrigger>
