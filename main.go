@@ -43,6 +43,11 @@ func main() {
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
+		Windows: application.WindowsOptions{
+			AdditionalBrowserArgs: []string{
+				"--user-agent=Mozilla/5.0 (Windows NT) wails.io",
+			},
+		},
 	})
 
 	// Create a new window with the necessary options.
@@ -59,7 +64,7 @@ func main() {
 			Backdrop:                application.MacBackdropTranslucent,
 			TitleBar:                application.MacTitleBarHiddenInset,
 		},
-		BackgroundColour: application.NewRGB(27, 38, 54),
+		BackgroundColour: application.NewRGB(248, 250, 252),
 		URL:              "/",
 	})
 
