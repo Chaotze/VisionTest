@@ -1,10 +1,14 @@
 version: '3'
 
 vars:
-  APP_NAME: "visiontest"
-  BIN_DIR: "build/bin"
+  APP_NAME_BASE: 'VisionTest'
+  BIN_DIR: 'build/bin'
   PACKAGE_MANAGER: '{{.PACKAGE_MANAGER | default "pnpm"}}'
   VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
+
+  TARGET_OS: '{{.GOOS | default (env "GOOS") | default .OS | default OS}}'
+  TARGET_ARCH: '{{.GOARCH | default (env "GOARCH") | default .ARCH | default ARCH}}'
+  APP_NAME: '{{.APP_NAME_BASE}}_{{.TARGET_OS}}_{{.TARGET_ARCH}}'
 
 includes:
   common: ./build/Taskfile.yml
