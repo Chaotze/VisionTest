@@ -60,6 +60,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
   const isAnsweringRef = useRef<boolean>(false);
   const eyeOcclusionRef = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
   const eyeTestedRef = useRef<EyeToTest>(EyeToTest.Right);
+  const feedbackModeRef = useRef<FeedbackMode>(FeedbackMode.Gesture);
 
   // Synchronize actual distance
   useEffect(() => {
@@ -72,7 +73,8 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
   useEffect(() => {
     sessionRef.current = session;
     isAnsweringRef.current = isAnswering;
-  }, [session, isAnswering]);
+    feedbackModeRef.current = feedbackMode;
+  }, [session, isAnswering, feedbackMode]);
 
   useEffect(() => {
     eyeOcclusionRef.current = eyeOcclusion;
@@ -157,8 +159,10 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     }
 
     if (speechRecognitionRef.current) {
+      const currentRecognition = speechRecognitionRef.current;
+      speechRecognitionRef.current = null;
       try {
-        speechRecognitionRef.current.stop();
+        currentRecognition.stop();
       } catch (e) { }
     }
 
@@ -203,11 +207,17 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     rec.onend = () => {
       // Auto restart if FeedbackMode is Voice and session is running
       const currentSession = sessionRef.current;
-      if (feedbackMode === FeedbackMode.Voice && currentSession && !currentSession.completed) {
+      const isActiveRecognition = speechRecognitionRef.current === rec;
+      if (
+        isActiveRecognition &&
+        feedbackModeRef.current === FeedbackMode.Voice &&
+        currentSession &&
+        !currentSession.completed
+      ) {
         try {
           rec.start();
         } catch (err) { }
-      } else {
+      } else if (isActiveRecognition) {
         setIsListeningVoice(false);
       }
     };
@@ -359,14 +369,15 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
       initSpeechRecognition();
     } else {
       if (speechRecognitionRef.current) {
-        try {
-          speechRecognitionRef.current.stop();
-        } catch (e) { }
+        const currentRecognition = speechRecognitionRef.current;
         speechRecognitionRef.current = null;
+        try {
+          currentRecognition.stop();
+        } catch (e) { }
       }
       setIsListeningVoice(false);
     }
-  }, [feedbackMode, session]);
+  }, [feedbackMode, session?.completed]);
 
   // Control Camera based on activeTab
   useEffect(() => {
@@ -438,8 +449,10 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
   const handleStopTest = () => {
     // Don't stop camera - keep it running unless permission is denied
     if (speechRecognitionRef.current) {
+      const currentRecognition = speechRecognitionRef.current;
+      speechRecognitionRef.current = null;
       try {
-        speechRecognitionRef.current.stop();
+        currentRecognition.stop();
       } catch (e) { }
     }
     setSession(null);
