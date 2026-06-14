@@ -1,14 +1,14 @@
 version: '3'
 
 vars:
-  APP_NAME_BASE: 'VisionTest'
+  APP_NAME: 'VisionTest'
   BIN_DIR: 'build/bin'
   PACKAGE_MANAGER: '{{.PACKAGE_MANAGER | default "pnpm"}}'
   VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
 
   TARGET_OS: '{{.GOOS | default (env "GOOS") | default .OS | default OS}}'
   TARGET_ARCH: '{{.GOARCH | default (env "GOARCH") | default .ARCH | default ARCH}}'
-  APP_NAME: '{{.APP_NAME_BASE}}_{{.TARGET_OS}}_{{.TARGET_ARCH}}'
+  TARGET_NAME: '{{.APP_NAME}}_{{.TARGET_OS}}_{{.TARGET_ARCH}}'
 
 includes:
   common: ./build/Taskfile.yml
@@ -21,6 +21,12 @@ tasks:
     summary: Builds the application
     cmds:
       - task: "{{OS}}:build"
+
+  release:
+    summary: Release the application for multiple platforms and architectures
+    cmds:
+      - task: darwin:release
+      - task: windows:release
 
   package:
     summary: Packages a production build of the application

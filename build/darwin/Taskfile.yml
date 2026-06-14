@@ -117,6 +117,22 @@ tasks:
     cmds:
       - wails3 tool lipo -output "{{.BIN_DIR}}/{{.APP_NAME}}" -input "{{.BIN_DIR}}/{{.APP_NAME}}-amd64" -input "{{.BIN_DIR}}/{{.APP_NAME}}-arm64"
       - rm -f "{{.BIN_DIR}}/{{.APP_NAME}}-amd64" "{{.BIN_DIR}}/{{.APP_NAME}}-arm64"
+  
+  release:
+    summary: Release the application on multiple platforms for macOS
+    cmds:
+      - task: build
+        vars:
+          ARCH: amd64
+      - task: create:app:bundle
+        vars:
+          TARGET_NAME: "{{.APP_NAME}}_darwin_amd64"
+      - task: build
+        vars:
+          ARCH: arm64
+      - task: create:app:bundle
+        vars:
+          TARGET_NAME: "{{.APP_NAME}}_darwin_arm64"
 
   package:
     summary: Packages the application into a `.app` bundle
@@ -131,21 +147,25 @@ tasks:
       - task: build:universal
     cmds:
       - task: create:app:bundle
+        vars:
+          TARGET_NAME: "{{.APP_NAME}}"
 
 
   create:app:bundle:
     summary: Creates an `.app` bundle
     cmds:
-      - mkdir -p "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/MacOS"
-      - mkdir -p "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources"
-      - cp build/darwin/icons.icns "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources"
+      - mkdir -p "{{.BIN_DIR}}/{{.TARGET_NAME}}.app/Contents/MacOS"
+      - mkdir -p "{{.BIN_DIR}}/{{.TARGET_NAME}}.app/Contents/Resources"
+      - cp build/darwin/icons.icns "{{.BIN_DIR}}/{{.TARGET_NAME}}.app/Contents/Resources"
       - |
         if [ -f build/darwin/Assets.car ]; then
-          cp build/darwin/Assets.car "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources"
+          cp build/darwin/Assets.car "{{.BIN_DIR}}/{{.TARGET_NAME}}.app/Contents/Resources"
         fi
-      - cp "{{.BIN_DIR}}/{{.APP_NAME}}" "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/MacOS"
-      - cp build/darwin/Info.plist "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents"
+      - cp "{{.BIN_DIR}}/{{.APP_NAME}}" "{{.BIN_DIR}}/{{.TARGET_NAME}}.app/Contents/MacOS"
+      - cp build/darwin/Info.plist "{{.BIN_DIR}}/{{.TARGET_NAME}}.app/Contents"
       - task: '{{if eq OS "darwin"}}codesign:adhoc{{else}}codesign:skip{{end}}'
+        vars:
+          APP_NAME: "{{.TARGET_NAME}}"
 
   codesign:adhoc:
     summary: Ad-hoc signs the app bundle (macOS only)

@@ -10,7 +10,7 @@
         <key>CFBundleName</key>
             <string>VisionTest</string>
         <key>CFBundleExecutable</key>
-            <string>visiontest</string>
+            <string>VisionTest</string>
         <key>CFBundleIdentifier</key>
             <string>cn.chaotze.visiontest</string>
         <key>CFBundleVersion</key>

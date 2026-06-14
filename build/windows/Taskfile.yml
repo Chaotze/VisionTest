@@ -94,6 +94,28 @@ tasks:
       DOCKER_MOUNTS:
         sh: 'wails3 tool docker-mounts'
 
+  release:
+    summary: Release the application on multiple platforms for Windows
+    cmds:
+      - task: build
+        vars:
+          ARCH: amd64
+      - |
+        {{if eq OS "windows"}}
+        mv "{{.BIN_DIR}}\{{.APP_NAME}}.exe" "{{.BIN_DIR}}\{{.APP_NAME}}_windows_amd64.exe"
+        {{else}}
+        mv "{{.BIN_DIR}}/{{.APP_NAME}}.exe" "{{.BIN_DIR}}/{{.APP_NAME}}_windows_amd64.exe"
+        {{end}}
+      - task: build
+        vars:
+          ARCH: arm64
+      - |
+        {{if eq OS "windows"}}
+        mv "{{.BIN_DIR}}\{{.APP_NAME}}.exe" "{{.BIN_DIR}}\{{.APP_NAME}}_windows_arm64.exe"
+        {{else}}
+        mv "{{.BIN_DIR}}/{{.APP_NAME}}.exe" "{{.BIN_DIR}}/{{.APP_NAME}}_windows_arm64.exe"
+        {{end}}
+
   package:
     summary: Packages the application
     cmds:
