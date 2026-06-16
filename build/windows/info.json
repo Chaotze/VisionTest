@@ -1,10 +1,10 @@
 {
 	"fixed": {
-		"file_version": "1.0.60606.0"
+		"file_version": "1.2.60616.0"
 	},
 	"info": {
 		"0000": {
-			"ProductVersion": "1.0.60606.0",
+			"ProductVersion": "1.2.60616.0",
 			"CompanyName": "Chaotze",
 			"FileDescription": "创新交互赋能视力筛查，守护清晰视界",
 			"LegalCopyright": "Copyright © 2026 VisionTest. All rights reserved.",

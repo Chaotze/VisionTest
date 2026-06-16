@@ -6,26 +6,26 @@
 export enum TestStage {
   Welcome = 'WELCOME',
   Calibrating = 'CALIBRATING',
-  Testing = 'TESTING'
+  Testing = 'TESTING',
 }
 
 export enum EyeToTest {
   Right = 'RIGHT',  // Testing Right eye (Left eye should be closed/covered)
   Left = 'LEFT',    // Testing Left eye (Right eye should be closed/covered)
-  Both = 'BOTH'     // Testing Both eyes
+  Both = 'BOTH',    // Testing Both eyes
 }
 
 export enum FeedbackMode {
   Gesture = 'GESTURE',
   Voice = 'VOICE',
-  Keyboard = 'KEYBOARD'
+  Keyboard = 'KEYBOARD',
 }
 
 export enum Direction {
   Up = 'UP',
   Down = 'DOWN',
   Left = 'LEFT',
-  Right = 'RIGHT'
+  Right = 'RIGHT',
 }
 
 export interface AcuityLevel {

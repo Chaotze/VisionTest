@@ -1,5 +1,5 @@
 [Desktop Entry]
-Version=1.0.60606
+Version=1.2.60616
 Name=VisionTest
 Comment=创新交互赋能视力筛查，守护清晰视界
 # The Exec line includes %u to pass the URL to the application

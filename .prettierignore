@@ -1,0 +1,7 @@
+.pnpm-store/
+coverage/
+node_modules/
+public/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock

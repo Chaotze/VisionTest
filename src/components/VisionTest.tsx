@@ -3,33 +3,52 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { useState, useEffect, useRef } from 'react';
-import { motion } from 'motion/react';
-import {
-  Play, Volume2, VolumeX, Keyboard, Mic, HelpCircle,
-  CheckCircle2, XCircle, RotateCcw, AlertTriangle, ArrowRight, Eye, ShieldAlert, Award,
-  Camera, CameraOff, Settings2, HandFist, Bolt, ScanEye, Pointer, Check, Undo2, CheckCircle, AudioLines,
-  Activity
-} from 'lucide-react';
-import { toast } from 'sonner';
 import { BorderBeam } from 'border-beam';
 import {
-  TestStage, EyeToTest, FeedbackMode, Direction,
-  ACUITY_LEVELS, CalibrationData, TestSession
-} from '../types';
+  Activity,
+  AudioLines,
+  Award,
+  Bolt,
+  CheckCircle,
+  Eye,
+  HandFist,
+  Keyboard,
+  Mic,
+  Pointer,
+  ScanEye,
+  Settings2,
+  Volume2,
+  VolumeX,
+} from 'lucide-react';
+import { motion } from 'motion/react';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { calculateOptotypeSizePx } from '../lib/visionMath';
+import {
+  ACUITY_LEVELS,
+  CalibrationData,
+  Direction,
+  EyeToTest,
+  FeedbackMode,
+  TestSession,
+} from '../types';
 import CameraManager from './CameraManager';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
 interface VisionTestProps {
   calibration: CalibrationData;
   onRestart: () => void;
 }
 
-export default function VisionTest({ calibration, onRestart }: VisionTestProps) {
+export default function VisionTest({
+  calibration,
+  onRestart,
+}: VisionTestProps) {
   // Configs
   const [eyeTested, setEyeTested] = useState<EyeToTest>(EyeToTest.Left);
-  const [feedbackMode, setFeedbackMode] = useState<FeedbackMode>(FeedbackMode.Gesture);
+  const [feedbackMode, setFeedbackMode] = useState<FeedbackMode>(
+    FeedbackMode.Gesture
+  );
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [autoDistanceMode, setAutoDistanceMode] = useState<boolean>(true);
   const [manualDistanceCm, setManualDistanceCm] = useState<number>(100); // 1 meter default if manual
@@ -37,13 +56,20 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
 
   // Tracker states
   const [distanceCm, setDistanceCm] = useState<number>(100);
-  const [eyeOcclusion, setEyeOcclusion] = useState<{ left: boolean; right: boolean }>({ left: false, right: false });
+  const [eyeOcclusion, setEyeOcclusion] = useState<{
+    left: boolean;
+    right: boolean;
+  }>({ left: false, right: false });
   const [session, setSession] = useState<TestSession | null>(null);
 
   // Active test visual states
-  const [currentEDirection, setCurrentEDirection] = useState<Direction>(Direction.Right);
+  const [currentEDirection, setCurrentEDirection] = useState<Direction>(
+    Direction.Right
+  );
   const [isAnswering, setIsAnswering] = useState<boolean>(false);
-  const [answerResult, setAnswerResult] = useState<'correct' | 'wrong' | null>(null);
+  const [answerResult, setAnswerResult] = useState<'correct' | 'wrong' | null>(
+    null
+  );
 
   // Voice state
   const [isListeningVoice, setIsListeningVoice] = useState<boolean>(false);
@@ -58,7 +84,10 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
   const sessionRef = useRef<TestSession | null>(null);
   const directionRef = useRef<Direction>(Direction.Right);
   const isAnsweringRef = useRef<boolean>(false);
-  const eyeOcclusionRef = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
+  const eyeOcclusionRef = useRef<{ left: boolean; right: boolean }>({
+    left: false,
+    right: false,
+  });
   const eyeTestedRef = useRef<EyeToTest>(EyeToTest.Right);
   const feedbackModeRef = useRef<FeedbackMode>(FeedbackMode.Gesture);
 
@@ -97,7 +126,9 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     if (isMuted) return;
     try {
       if (!audioCtxRef.current) {
-        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioCtxRef.current = new (
+          window.AudioContext || (window as any).webkitAudioContext
+        )();
       }
       const ctx = audioCtxRef.current;
       if (ctx.state === 'suspended') {
@@ -131,7 +162,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
         osc.stop(ctx.currentTime + 0.455);
       } else if (type === 'complete') {
         // Ascending major chord
-        const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+        const notes = [261.63, 329.63, 392.0, 523.25]; // C4, E4, G4, C5
         notes.forEach((freq, idx) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -140,7 +171,10 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
           osc.type = 'triangle';
           osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.12);
           gain.gain.setValueAtTime(0.1, ctx.currentTime + idx * 0.12);
-          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + idx * 0.12 + 0.4);
+          gain.gain.exponentialRampToValueAtTime(
+            0.01,
+            ctx.currentTime + idx * 0.12 + 0.4
+          );
           osc.start(ctx.currentTime + idx * 0.12);
           osc.stop(ctx.currentTime + idx * 0.12 + 0.5);
         });
@@ -152,7 +186,9 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
 
   // Set up and restart Web Speech Recognition
   const initSpeechRecognition = () => {
-    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognitionAPI =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) {
       toast.error('当前浏览器不支持语音识别功能，请选择手势或键盘反馈！');
       return;
@@ -163,7 +199,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
       speechRecognitionRef.current = null;
       try {
         currentRecognition.stop();
-      } catch (e) { }
+      } catch (e) {}
     }
 
     const rec = new SpeechRecognitionAPI();
@@ -179,23 +215,50 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
 
     rec.onresult = (event: any) => {
       const lastIndex = event.results.length - 1;
-      const originalText = event.results[lastIndex][0].transcript.trim().toLowerCase();
+      const originalText = event.results[lastIndex][0].transcript
+        .trim()
+        .toLowerCase();
       setVoiceTranscript(`${originalText}`);
 
       let identifiedDir: Direction | null = null;
-      if (originalText.includes('上') || originalText.includes('向') && originalText.includes('上') || originalText.includes('shang') || originalText === 'up') {
+      if (
+        originalText.includes('上') ||
+        (originalText.includes('向') && originalText.includes('上')) ||
+        originalText.includes('shang') ||
+        originalText === 'up'
+      ) {
         identifiedDir = Direction.Up;
-      } else if (originalText.includes('下') || originalText.includes('向') && originalText.includes('下') || originalText.includes('xia') || originalText === 'down') {
+      } else if (
+        originalText.includes('下') ||
+        (originalText.includes('向') && originalText.includes('下')) ||
+        originalText.includes('xia') ||
+        originalText === 'down'
+      ) {
         identifiedDir = Direction.Down;
-      } else if (originalText.includes('左') || originalText.includes('向') && originalText.includes('左') || originalText.includes('zuo') || originalText === 'left') {
+      } else if (
+        originalText.includes('左') ||
+        (originalText.includes('向') && originalText.includes('左')) ||
+        originalText.includes('zuo') ||
+        originalText === 'left'
+      ) {
         identifiedDir = Direction.Left;
-      } else if (originalText.includes('右') || originalText.includes('向') && originalText.includes('右') || originalText.includes('you') || originalText === 'right') {
+      } else if (
+        originalText.includes('右') ||
+        (originalText.includes('向') && originalText.includes('右')) ||
+        originalText.includes('you') ||
+        originalText === 'right'
+      ) {
         identifiedDir = Direction.Right;
       }
 
       // Consistent check using Refs
       const currentSession = sessionRef.current;
-      if (identifiedDir && currentSession && !currentSession.completed && !isAnsweringRef.current) {
+      if (
+        identifiedDir &&
+        currentSession &&
+        !currentSession.completed &&
+        !isAnsweringRef.current
+      ) {
         handleUserAnswer(identifiedDir);
       }
     };
@@ -216,7 +279,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
       ) {
         try {
           rec.start();
-        } catch (err) { }
+        } catch (err) {}
       } else if (isActiveRecognition) {
         setIsListeningVoice(false);
       }
@@ -225,7 +288,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     speechRecognitionRef.current = rec;
     try {
       rec.start();
-    } catch (err) { }
+    } catch (err) {}
   };
 
   const handleUserAnswer = (userDir: Direction) => {
@@ -237,8 +300,12 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     if (autoDistanceMode && !isEyeOcclusionCorrect()) {
       playSound('wrong');
       const targetEyeStr = eyeTested === EyeToTest.Right ? '左眼' : '右眼';
-      speak(`测试的是${eyeTested === EyeToTest.Right ? '右眼' : '左眼'}，请闭上或遮住${targetEyeStr}后再作答！`);
-      toast.warning(`遮挡纠正警告`, { description: `请闭上或遮挡住 ${targetEyeStr} 后继续测试` });
+      speak(
+        `测试的是${eyeTested === EyeToTest.Right ? '右眼' : '左眼'}，请闭上或遮住${targetEyeStr}后再作答！`
+      );
+      toast.warning(`遮挡纠正警告`, {
+        description: `请闭上或遮挡住 ${targetEyeStr} 后继续测试`,
+      });
       return;
     }
 
@@ -258,13 +325,15 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
       userResponse: userDir,
       isCorrect,
       distanceCm: Math.round(distanceCm),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     const updatedHistory = [...currentSession.history, newHistoryItem];
-    const currentLevelHistory = updatedHistory.filter(h => h.levelIndex === currentSession.currentLevelIndex);
-    const correctCount = currentLevelHistory.filter(h => h.isCorrect).length;
-    const wrongCount = currentLevelHistory.filter(h => !h.isCorrect).length;
+    const currentLevelHistory = updatedHistory.filter(
+      (h) => h.levelIndex === currentSession.currentLevelIndex
+    );
+    const correctCount = currentLevelHistory.filter((h) => h.isCorrect).length;
+    const wrongCount = currentLevelHistory.filter((h) => !h.isCorrect).length;
 
     let nextLevelIndex = currentSession.currentLevelIndex;
     let isCompleted = false;
@@ -273,21 +342,27 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     if (correctCount >= 2) {
       if (currentSession.currentLevelIndex < ACUITY_LEVELS.length - 1) {
         nextLevelIndex = currentSession.currentLevelIndex + 1;
-        speak(`正确。进入${ACUITY_LEVELS[nextLevelIndex].fivePoint === 5 ? '五点零' : String(ACUITY_LEVELS[nextLevelIndex].fivePoint)}。`);
+        speak(
+          `正确。进入${ACUITY_LEVELS[nextLevelIndex].fivePoint === 5 ? '五点零' : String(ACUITY_LEVELS[nextLevelIndex].fivePoint)}。`
+        );
       } else {
         isCompleted = true;
         finalScore = ACUITY_LEVELS[currentSession.currentLevelIndex];
-        speak(`测试完成。您的视力达到${finalScore.fivePoint === 5 ? '五点零' : String(finalScore.fivePoint)}！`);
+        speak(
+          `测试完成。您的视力达到${finalScore.fivePoint === 5 ? '五点零' : String(finalScore.fivePoint)}！`
+        );
         playSound('complete');
       }
     } else if (wrongCount >= 2) {
       isCompleted = true;
       const finalIndex = Math.max(0, currentSession.currentLevelIndex - 1);
       finalScore = ACUITY_LEVELS[finalIndex];
-      speak(`测试结束。您的视力为${finalScore.fivePoint === 5 ? '五点零' : String(finalScore.fivePoint)}。`);
+      speak(
+        `测试结束。您的视力为${finalScore.fivePoint === 5 ? '五点零' : String(finalScore.fivePoint)}。`
+      );
       playSound('complete');
     } else {
-      speak(isCorrect ? "正确" : "错误");
+      speak(isCorrect ? '正确' : '错误');
     }
 
     setTimeout(() => {
@@ -296,7 +371,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
           ...currentSession,
           history: updatedHistory,
           completed: true,
-          finalScore
+          finalScore,
         };
         setSession(finalSession);
         sessionRef.current = finalSession;
@@ -309,7 +384,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
           ...currentSession,
           history: updatedHistory,
           currentLevelIndex: nextLevelIndex,
-          completed: false
+          completed: false,
         };
         setSession(nextSession);
         sessionRef.current = nextSession;
@@ -373,7 +448,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
         speechRecognitionRef.current = null;
         try {
           currentRecognition.stop();
-        } catch (e) { }
+        } catch (e) {}
       }
       setIsListeningVoice(false);
     }
@@ -410,7 +485,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
       consecutiveCorrect: 0,
       consecutiveWrong: 0,
       completed: false,
-      finalScore: null
+      finalScore: null,
     };
 
     setSession(newSession);
@@ -423,13 +498,28 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
     isAnsweringRef.current = false;
     setAnswerResult(null);
 
-    const label = eyeTested === EyeToTest.Right ? '右眼视力，请挡住左眼' : eyeTested === EyeToTest.Left ? '左眼视力，请挡住右眼' : '双眼视力';
-    const action = feedbackMode === FeedbackMode.Gesture ? '手势或' : feedbackMode === FeedbackMode.Voice ? '语音或' : '';
+    const label =
+      eyeTested === EyeToTest.Right
+        ? '右眼视力，请挡住左眼'
+        : eyeTested === EyeToTest.Left
+          ? '左眼视力，请挡住右眼'
+          : '双眼视力';
+    const action =
+      feedbackMode === FeedbackMode.Gesture
+        ? '手势或'
+        : feedbackMode === FeedbackMode.Voice
+          ? '语音或'
+          : '';
     speak(`视力测试开始。当前测试${label}。请使用${action}键盘方向键作答。`);
   };
 
   const getRandomDirection = (): Direction => {
-    const dirs = [Direction.Up, Direction.Down, Direction.Left, Direction.Right];
+    const dirs = [
+      Direction.Up,
+      Direction.Down,
+      Direction.Left,
+      Direction.Right,
+    ];
     return dirs[Math.floor(Math.random() * dirs.length)];
   };
 
@@ -453,14 +543,16 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
       speechRecognitionRef.current = null;
       try {
         currentRecognition.stop();
-      } catch (e) { }
+      } catch (e) {}
     }
     setSession(null);
     sessionRef.current = null;
     speak('视力测试结束。');
   };
 
-  const activeAcuity = session ? ACUITY_LEVELS[session.currentLevelIndex] : ACUITY_LEVELS[3];
+  const activeAcuity = session
+    ? ACUITY_LEVELS[session.currentLevelIndex]
+    : ACUITY_LEVELS[3];
   const calculatedSizePx = calculateOptotypeSizePx(
     distanceCm,
     activeAcuity.decimal,
@@ -468,7 +560,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
   );
 
   return (
-    <div className="w-full max-w-6xl mx-auto flex flex-col lg:flex-row gap-6 p-2">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-2 lg:flex-row">
       {/* 嵌入局部高性能 CSS 动画，支持描边与透明度淡入双重动画 */}
       <style>{`
         /* 打勾动画：从 dashoffset=24 且不透明度为 0，渐变到完全显示 */
@@ -518,34 +610,33 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
       `}</style>
 
       {/* LEFT COLUMN: Test Console & Visualized E Card */}
-      <div className="flex-1 flex flex-col gap-6">
-
+      <div className="flex flex-1 flex-col gap-6">
         {/* Visualized Optotype Display Panel */}
         <BorderBeam
           active={session}
-          className="border border-slate-100 dark:border-slate-800/85 shadow-xl"
-          size={session?.completed ? undefined : "pulse-outside"}
+          className="border border-slate-100 shadow-xl dark:border-slate-800/85"
+          size={session?.completed ? undefined : 'pulse-outside'}
         >
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 flex flex-col items-center justify-between min-h-[460px] relative overflow-hidden">
-
+          <div className="relative flex min-h-[460px] flex-col items-center justify-between overflow-hidden rounded-3xl bg-white p-6 dark:bg-slate-900">
             {/* <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 via-indigo-500 to-cyan-500" /> */}
 
             {/* Background radial glow */}
-            <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 rounded-full bg-indigo-500/10 blur-3xl" />
-            <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-48 h-48 rounded-full bg-violet-500/10 blur-3xl" />
+            <div className="absolute top-0 right-0 -mt-16 -mr-16 h-48 w-48 rounded-full bg-indigo-500/10 blur-3xl" />
+            <div className="absolute bottom-0 left-0 -mb-16 -ml-16 h-48 w-48 rounded-full bg-violet-500/10 blur-3xl" />
 
-            <div className="w-full flex justify-between items-center text-sm mb-4">
+            <div className="mb-4 flex w-full items-center justify-between text-sm">
               {session && (
                 <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold rounded-lg tracking-wider text-xs uppercase">
+                  <span className="rounded-lg bg-indigo-50 px-3 py-1 text-xs font-bold tracking-wider text-indigo-600 uppercase dark:bg-indigo-950/40 dark:text-indigo-400">
                     当前视力等级
                   </span>
-                  <span className="font-black text-slate-800 dark:text-slate-100 text-lg">
+                  <span className="text-lg font-black text-slate-800 dark:text-slate-100">
                     {Number(activeAcuity.fivePoint).toFixed(1)}
                   </span>
-                  <div className="flex items-center gap-1 bg-slate-100 rounded-lg px-2 py-1">
-                    <span className="text-slate-400 hover:text-slate-500 text-xs">
-                      小数: {activeAcuity.decimal}，Snellen: {activeAcuity.snellen}
+                  <div className="flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-1">
+                    <span className="text-xs text-slate-400 hover:text-slate-500">
+                      小数: {activeAcuity.decimal}，Snellen:{' '}
+                      {activeAcuity.snellen}
                     </span>
                   </div>
                 </div>
@@ -557,23 +648,29 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                     const val = !isMuted;
                     setIsMuted(val);
                     if (!val) {
-                      speak("语音功能已开启");
+                      speak('语音功能已开启');
                     }
                   }}
-                  className={`p-2 rounded-xl transition ${isMuted ? 'text-slate-400 hover:text-slate-500 bg-slate-100 dark:bg-slate-800' : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-400'}`}
-                  title={isMuted ? "静音中" : "声音已开启"}
+                  className={`rounded-xl p-2 transition ${isMuted ? 'bg-slate-100 text-slate-400 hover:text-slate-500 dark:bg-slate-800' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-400'}`}
+                  title={isMuted ? '静音中' : '声音已开启'}
                 >
-                  {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                  {isMuted ? (
+                    <VolumeX className="h-5 w-5" />
+                  ) : (
+                    <Volume2 className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center p-6 min-h-[220px]">
+            <div className="flex min-h-[220px] flex-1 flex-col items-center justify-center p-6">
               {session && !session.completed ? (
                 <div className="relative flex items-center justify-center">
                   {/* Visual Feedback on Answer */}
                   {answerResult && (
-                    <div className={`absolute inset-0 -m-8 rounded-full filter blur-xl opacity-20 animate-ping ${answerResult === 'correct' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                    <div
+                      className={`absolute inset-0 -m-8 animate-ping rounded-full opacity-20 blur-xl filter ${answerResult === 'correct' ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                    />
                   )}
 
                   {/* Show animated check/X icon when answering, otherwise show E */}
@@ -591,10 +688,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                           strokeLinejoin="round"
                           className="text-emerald-500"
                         >
-                          <path
-                            d="M4 12 9 17L20 6"
-                            className="animate-check"
-                          />
+                          <path d="M4 12 9 17L20 6" className="animate-check" />
                         </svg>
                       ) : (
                         <svg
@@ -608,14 +702,8 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                           strokeLinejoin="round"
                           className="text-rose-500"
                         >
-                          <path
-                            d="M18 6 6 18"
-                            className="animate-x-line1"
-                          />
-                          <path
-                            d="m6 6 12 12"
-                            className="animate-x-line2"
-                          />
+                          <path d="M18 6 6 18" className="animate-x-line1" />
+                          <path d="m6 6 12 12" className="animate-x-line2" />
                         </svg>
                       )}
                     </div>
@@ -628,11 +716,11 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                         height: `${calculatedSizePx}px`,
                         transform: `rotate(${currentEDirection === Direction.Up ? 270 : currentEDirection === Direction.Down ? 90 : currentEDirection === Direction.Left ? 180 : 0}deg)`,
                       }}
-                      className="transition-transform duration-150 ease-out select-none flex items-center justify-center"
+                      className="flex items-center justify-center transition-transform duration-150 ease-out select-none"
                     >
                       <svg
                         viewBox="0 0 5 5"
-                        className="w-full h-full text-slate-900 dark:text-slate-100 fill-current"
+                        className="h-full w-full fill-current text-slate-900 dark:text-slate-100"
                       >
                         <path d="M 0 0 L 5 0 L 5 1 L 1 1 L 1 2 L 5 2 L 5 3 L 1 3 L 1 4 L 5 4 L 5 5 L 0 5 Z" />
                       </svg>
@@ -644,25 +732,29 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-center space-y-4 py-2 w-full"
+                  className="w-full space-y-4 py-2 text-center"
                 >
                   {/* Trophy & Score */}
                   <div className="relative inline-block">
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                      className="w-20 h-20 mx-auto bg-gradient-to-br from-amber-300 to-orange-600 rounded-full flex items-center justify-center shadow-lg"
+                      transition={{
+                        type: 'spring',
+                        stiffness: 200,
+                        damping: 15,
+                      }}
+                      className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-orange-600 shadow-lg"
                     >
-                      <Award className="w-12 h-12 text-white" />
+                      <Award className="h-12 w-12 text-white" />
                     </motion.div>
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      transition={{ delay: 0.2, type: "spring" }}
-                      className="absolute -top-1 -right-1 w-7 h-7 bg-gradient-to-bl from-emerald-300 to-emerald-600 rounded-full flex items-center justify-center shadow-sm"
+                      transition={{ delay: 0.2, type: 'spring' }}
+                      className="absolute -top-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-bl from-emerald-300 to-emerald-600 shadow-sm"
                     >
-                      <CheckCircle className="w-4 h-4 text-white" />
+                      <CheckCircle className="h-4 w-4 text-white" />
                     </motion.div>
                   </div>
 
@@ -672,8 +764,10 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.3 }}
                   >
-                    <div className="text-6xl font-black bg-gradient-to-br from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
-                      {session.finalScore ? Number(session.finalScore.fivePoint).toFixed(1) : '—'}
+                    <div className="bg-gradient-to-br from-indigo-600 to-purple-600 bg-clip-text text-6xl font-black text-transparent dark:from-indigo-400 dark:to-purple-400">
+                      {session.finalScore
+                        ? Number(session.finalScore.fivePoint).toFixed(1)
+                        : '—'}
                     </div>
                   </motion.div>
 
@@ -685,30 +779,39 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                     className="flex items-center justify-center gap-2 text-sm text-slate-500 dark:text-slate-400"
                   >
                     <span>小数：{session.finalScore?.decimal}</span>
-                    <span className="text-slate-300 dark:text-slate-600">|</span>
+                    <span className="text-slate-300 dark:text-slate-600">
+                      |
+                    </span>
                     <span>Snellen：{session.finalScore?.snellen}</span>
-                    <span className="text-slate-300 dark:text-slate-600">|</span>
+                    <span className="text-slate-300 dark:text-slate-600">
+                      |
+                    </span>
                     <span>{session.finalScore?.label}</span>
                   </motion.div>
                 </motion.div>
               ) : (
-                <div className="text-center space-y-4 max-w-sm">
-                  <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/40 rounded-full flex items-center justify-center mx-auto text-indigo-500">
-                    <Eye className="w-9 h-9" />
+                <div className="max-w-sm space-y-4 text-center">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-indigo-50 text-indigo-500 dark:bg-indigo-950/40">
+                    <Eye className="h-9 w-9" />
                   </div>
-                  <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">视力测试</h3>
-                  <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
-                    请闭上或遮住一只眼睛，辨认屏幕中央出现的<b> E 字符缺口 </b>的方向<br />点击下方按钮开启视力测试
+                  <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                    视力测试
+                  </h3>
+                  <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                    请闭上或遮住一只眼睛，辨认屏幕中央出现的<b> E 字符缺口 </b>
+                    的方向
+                    <br />
+                    点击下方按钮开启视力测试
                   </p>
                   <BorderBeam
-                    className="shadow-sm hover:shadow-xl hover:-translate-y-[1px] shadow-indigo-500/20 transition-all duration-300"
+                    className="shadow-sm shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-[1px] hover:shadow-xl"
                     strength={2.0}
                   >
                     <button
                       onClick={handleStartTest}
-                      className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-br from-violet-500 via-indigo-500 to-cyan-500 text-white font-bold rounded-2xl active:scale-98 transition-all duration-300 cursor-pointer"
+                      className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-violet-500 via-indigo-500 to-cyan-500 py-3 font-bold text-white transition-all duration-300 active:scale-98"
                     >
-                      <Activity className="w-5 h-5" />
+                      <Activity className="h-5 w-5" />
                       开始测试
                     </button>
                   </BorderBeam>
@@ -717,88 +820,115 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
             </div>
 
             {session && !session.completed ? (
-              <div className="w-full h-8 border-t border-slate-50 dark:border-slate-800/60 pt-4 flex flex-col sm:flex-row items-center justify-between gap-1">
+              <div className="flex h-8 w-full flex-col items-center justify-between gap-1 border-t border-slate-50 pt-4 sm:flex-row dark:border-slate-800/60">
                 {feedbackMode === FeedbackMode.Gesture && (
-                  <div className="flex items-center text-xs text-slate-500 dark:text-slate-500 font-medium">
-                    <Pointer className="w-4 h-4 text-slate-500 mr-2" />
-                    <span>用手势指示相应方向并<b>持续 1 秒</b>，可提高识别正确率</span>
+                  <div className="flex items-center text-xs font-medium text-slate-500 dark:text-slate-500">
+                    <Pointer className="mr-2 h-4 w-4 text-slate-500" />
+                    <span>
+                      用手势指示相应方向并<b>持续 1 秒</b>，可提高识别正确率
+                    </span>
                   </div>
                 )}
 
                 {feedbackMode === FeedbackMode.Voice && (
-                  <div className="flex items-center text-xs text-slate-500 dark:text-slate-500 font-medium">
-                    <AudioLines className="w-4 h-4 text-slate-500 mr-2" />
+                  <div className="flex items-center text-xs font-medium text-slate-500 dark:text-slate-500">
+                    <AudioLines className="mr-2 h-4 w-4 text-slate-500" />
                     <span>请说出 E 字符缺口所指的方向</span>
                   </div>
                 )}
 
                 {feedbackMode === FeedbackMode.Keyboard && (
-                  <div className="flex items-center text-xs text-slate-500 dark:text-slate-500 font-medium">
-                    <Keyboard className="w-4 h-4 text-slate-500 mr-2" />
-                    <span>敲击键盘方向键 <kbd className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded border">↑</kbd> <kbd className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded border">↓</kbd> <kbd className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded border">←</kbd> <kbd className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded border">→</kbd> 或使用</span><span className="ml-1">WASD</span>
+                  <div className="flex items-center text-xs font-medium text-slate-500 dark:text-slate-500">
+                    <Keyboard className="mr-2 h-4 w-4 text-slate-500" />
+                    <span>
+                      敲击键盘方向键{' '}
+                      <kbd className="rounded border bg-slate-100 px-1 py-0.5 dark:bg-slate-800">
+                        ↑
+                      </kbd>{' '}
+                      <kbd className="rounded border bg-slate-100 px-1 py-0.5 dark:bg-slate-800">
+                        ↓
+                      </kbd>{' '}
+                      <kbd className="rounded border bg-slate-100 px-1 py-0.5 dark:bg-slate-800">
+                        ←
+                      </kbd>{' '}
+                      <kbd className="rounded border bg-slate-100 px-1 py-0.5 dark:bg-slate-800">
+                        →
+                      </kbd>{' '}
+                      或使用
+                    </span>
+                    <span className="ml-1">WASD</span>
                   </div>
                 )}
 
                 {session && (
                   <button
                     onClick={handleStopTest}
-                    className="text-xs text-rose-500 hover:text-rose-600 font-semibold flex items-center gap-1 transition px-3 py-1.5 hover:bg-rose-100/50 dark:hover:bg-rose-955/20 rounded-full"
+                    className="dark:hover:bg-rose-955/20 flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-rose-500 transition hover:bg-rose-100/50 hover:text-rose-600"
                   >
                     结束测试
                   </button>
                 )}
               </div>
-            ) : session?.completed && (
-              // <button
-              //   onClick={handleStopTest}
-              //   className="px-6 py-2 hover:bg-slate-100/50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full text-sm font-semibold active:scale-95 transition"
-              // >
-              //   返回
-              // </button>
+            ) : (
+              session?.completed && (
+                // <button
+                //   onClick={handleStopTest}
+                //   className="px-6 py-2 hover:bg-slate-100/50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full text-sm font-semibold active:scale-95 transition"
+                // >
+                //   返回
+                // </button>
 
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="flex items-center justify-center gap-3 pt-2"
-              >
-                <button
-                  onClick={handleStartTest}
-                  className="flex items-center gap-2 px-5 py-2 bg-gradient-to-br from-violet-500 via-indigo-500 to-cyan-500 hover:from-violet-600 hover:via-indigo-600 hover:to-cyan-600 text-white text-sm font-semibold rounded-full shadow-lg shadow-indigo-500/25 active:scale-95 transition-all duration-200"
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="flex items-center justify-center gap-3 pt-2"
                 >
-                  重新测试
-                </button>
-                {/* <button
+                  <button
+                    onClick={handleStartTest}
+                    className="flex items-center gap-2 rounded-full bg-gradient-to-br from-violet-500 via-indigo-500 to-cyan-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:from-violet-600 hover:via-indigo-600 hover:to-cyan-600 active:scale-95"
+                  >
+                    重新测试
+                  </button>
+                  {/* <button
                 onClick={handleStopTest}
                 className="flex items-center gap-2 px-5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold rounded-xl active:scale-95 transition-all duration-200"
               >
                 <Undo2 className="w-4 h-4" />
                 返回
               </button> */}
-              </motion.div>
+                </motion.div>
+              )
             )}
           </div>
         </BorderBeam>
       </div>
 
       {/* RIGHT COLUMN: Camera controls, Occlusion statuses & Calibration presets */}
-      <div className="w-full lg:w-[480px] flex flex-col gap-6 shrink-0">
-
+      <div className="flex w-full shrink-0 flex-col gap-6 lg:w-[480px]">
         {/* Unified Settings & HUD Panel with Tabs */}
         <BorderBeam
-          className="border border-slate-100 dark:border-slate-800/85 shadow-xl"
+          className="border border-slate-100 shadow-xl dark:border-slate-800/85"
           size={!session || session.completed ? undefined : 'pulse-outside'}
           strength={session && !session.completed ? undefined : 0.5}
         >
-          <div className="bg-white dark:bg-slate-900 rounded-3xl px-5 py-6">
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'settings' | 'hud')}>
-              <TabsList className="w-full mb-4">
+          <div className="rounded-3xl bg-white px-5 py-6 dark:bg-slate-900">
+            <Tabs
+              value={activeTab}
+              onValueChange={(value) =>
+                setActiveTab(value as 'settings' | 'hud')
+              }
+            >
+              <TabsList className="mb-4 w-full">
                 <TabsTrigger value="hud" className="flex items-center gap-2">
-                  <ScanEye className="w-4 h-4" />
+                  <ScanEye className="h-4 w-4" />
                   视觉跟踪
                 </TabsTrigger>
-                <TabsTrigger value="settings" className="flex items-center gap-2">
-                  <Settings2 className="w-4 h-4" />
+                <TabsTrigger
+                  value="settings"
+                  className="flex items-center gap-2"
+                >
+                  <Settings2 className="h-4 w-4" />
                   检测设置
                 </TabsTrigger>
               </TabsList>
@@ -822,7 +952,10 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                   onEyeOcclusionUpdate={(occl) => {
                     setEyeOcclusion((prev) => {
                       // 严格对比值变化，避免新对象引用导致相机在每一帧强制让组件重新渲染
-                      if (prev.left === occl.left && prev.right === occl.right) {
+                      if (
+                        prev.left === occl.left &&
+                        prev.right === occl.right
+                      ) {
                         return prev;
                       }
                       return occl;
@@ -840,20 +973,37 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                 />
               </div>
 
-              <TabsContent value="settings" className="space-y-5 -mt-2">
+              <TabsContent value="settings" className="-mt-2 space-y-5">
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase text-slate-600 dark:text-slate-500 tracking-wider block">测试眼 (Eye to Test)</label>
-                  <Tabs value={eyeTested} onValueChange={(value) => setEyeTested(value as EyeToTest)}>
+                  <label className="block text-xs font-semibold tracking-wider text-slate-600 uppercase dark:text-slate-500">
+                    测试眼 (Eye to Test)
+                  </label>
+                  <Tabs
+                    value={eyeTested}
+                    onValueChange={(value) => setEyeTested(value as EyeToTest)}
+                  >
                     <TabsList className="w-full">
-                      <TabsTrigger value={EyeToTest.Left} disabled={session !== null && !session.completed} className="flex items-center gap-2 py-2">
+                      <TabsTrigger
+                        value={EyeToTest.Left}
+                        disabled={session !== null && !session.completed}
+                        className="flex items-center gap-2 py-2"
+                      >
                         <span className="font-semibold">L</span>
                         <span>左眼</span>
                       </TabsTrigger>
-                      <TabsTrigger value={EyeToTest.Right} disabled={session !== null && !session.completed} className="flex items-center gap-2 py-2">
+                      <TabsTrigger
+                        value={EyeToTest.Right}
+                        disabled={session !== null && !session.completed}
+                        className="flex items-center gap-2 py-2"
+                      >
                         <span className="font-semibold">R</span>
                         <span>右眼</span>
                       </TabsTrigger>
-                      <TabsTrigger value={EyeToTest.Both} disabled={session !== null && !session.completed} className="flex items-center gap-2 py-2">
+                      <TabsTrigger
+                        value={EyeToTest.Both}
+                        disabled={session !== null && !session.completed}
+                        className="flex items-center gap-2 py-2"
+                      >
                         <span className="font-semibold">D</span>
                         <span>双眼</span>
                       </TabsTrigger>
@@ -862,19 +1012,35 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase text-slate-600 dark:text-slate-500 tracking-wider block">反馈识别模式 (Response Feedback)</label>
-                  <Tabs value={feedbackMode} onValueChange={(value) => setFeedbackMode(value as FeedbackMode)}>
+                  <label className="block text-xs font-semibold tracking-wider text-slate-600 uppercase dark:text-slate-500">
+                    反馈识别模式 (Response Feedback)
+                  </label>
+                  <Tabs
+                    value={feedbackMode}
+                    onValueChange={(value) =>
+                      setFeedbackMode(value as FeedbackMode)
+                    }
+                  >
                     <TabsList className="w-full">
-                      <TabsTrigger value={FeedbackMode.Gesture} className="flex items-center gap-1 py-2.5">
-                        <HandFist className="w-4 h-4" />
+                      <TabsTrigger
+                        value={FeedbackMode.Gesture}
+                        className="flex items-center gap-1 py-2.5"
+                      >
+                        <HandFist className="h-4 w-4" />
                         <span className="whitespace-nowrap">手势</span>
                       </TabsTrigger>
-                      <TabsTrigger value={FeedbackMode.Voice} className="flex items-center gap-1 py-2.5">
-                        <Mic className="w-4 h-4" />
+                      <TabsTrigger
+                        value={FeedbackMode.Voice}
+                        className="flex items-center gap-1 py-2.5"
+                      >
+                        <Mic className="h-4 w-4" />
                         <span className="whitespace-nowrap">语音</span>
                       </TabsTrigger>
-                      <TabsTrigger value={FeedbackMode.Keyboard} className="flex items-center gap-1 py-2.5">
-                        <Keyboard className="w-4 h-4" />
+                      <TabsTrigger
+                        value={FeedbackMode.Keyboard}
+                        className="flex items-center gap-1 py-2.5"
+                      >
+                        <Keyboard className="h-4 w-4" />
                         <span className="whitespace-nowrap">键盘</span>
                       </TabsTrigger>
                     </TabsList>
@@ -882,15 +1048,28 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase text-slate-600 dark:text-slate-500 tracking-wider block">距离检测方式 (Distance Detection)</label>
-                  <Tabs value={autoDistanceMode ? 'auto' : 'manual'} onValueChange={(value) => setAutoDistanceMode(value === 'auto')}>
+                  <label className="block text-xs font-semibold tracking-wider text-slate-600 uppercase dark:text-slate-500">
+                    距离检测方式 (Distance Detection)
+                  </label>
+                  <Tabs
+                    value={autoDistanceMode ? 'auto' : 'manual'}
+                    onValueChange={(value) =>
+                      setAutoDistanceMode(value === 'auto')
+                    }
+                  >
                     <TabsList className="w-full">
-                      <TabsTrigger value="auto" className="flex items-center gap-2 py-2">
+                      <TabsTrigger
+                        value="auto"
+                        className="flex items-center gap-2 py-2"
+                      >
                         <span className="font-semibold">AI</span>
                         <span>自动测距</span>
                       </TabsTrigger>
-                      <TabsTrigger value="manual" className="flex items-center gap-2 py-2">
-                        <Bolt className="w-4 h-4" />
+                      <TabsTrigger
+                        value="manual"
+                        className="flex items-center gap-2 py-2"
+                      >
+                        <Bolt className="h-4 w-4" />
                         <span>固定距离</span>
                       </TabsTrigger>
                     </TabsList>
@@ -908,12 +1087,17 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                           min="50"
                           max="250"
                           value={manualDistanceCm}
-                          onChange={(e) => setManualDistanceCm(parseInt(e.target.value))}
-                          className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-ew-resize accent-indigo-600"
+                          onChange={(e) =>
+                            setManualDistanceCm(parseInt(e.target.value))
+                          }
+                          className="h-1.5 w-full cursor-ew-resize appearance-none rounded-lg bg-slate-200 accent-indigo-600 dark:bg-slate-800"
                         />
                         <div className="flex justify-between text-[13px] text-slate-400">
                           <span>50 cm</span>
-                          <span className="text-slate-600 font-bold"> {manualDistanceCm} cm</span>
+                          <span className="font-bold text-slate-600">
+                            {' '}
+                            {manualDistanceCm} cm
+                          </span>
                           <span>250 cm</span>
                         </div>
                       </div>
@@ -922,17 +1106,17 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
                 </div>
               </TabsContent>
 
-              <TabsContent value="hud" className="space-y-4 mt-1.5">
-                <div className="flex justify-between items-center mb-3.5">
+              <TabsContent value="hud" className="mt-1.5 space-y-4">
+                <div className="mb-3.5 flex items-center justify-between">
                   {/* <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                   <Camera className="w-4 h-4 text-indigo-500" />
                   AI 视觉跟踪显示 HUD
                 </h4> */}
-                  <h4 className="text-sm font-bold text-slate-600 dark:text-slate-500 tracking-wider block">
+                  <h4 className="block text-sm font-bold tracking-wider text-slate-600 dark:text-slate-500">
                     当前距离屏幕 {distanceCm} cm
                   </h4>
                   {autoDistanceMode && (
-                    <span className="text-[10px] font-[Montserrat_Variable] px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100/30 rounded-full">
+                    <span className="rounded-full border border-emerald-100/30 bg-emerald-50 px-2 py-0.5 font-[Montserrat_Variable] text-[10px] text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
                       FaceMesh Live
                     </span>
                   )}
@@ -940,27 +1124,49 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
 
                 {feedbackMode === FeedbackMode.Voice && (
                   <BorderBeam active={isListeningVoice} className="mb-2">
-                    <div className={`p-3 rounded-2xl text-center border transition-all ${isListeningVoice ? 'bg-indigo-50/50 text-indigo-600 border-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/35' : 'bg-slate-50/40 border-slate-100 dark:bg-slate-950/30 dark:border-slate-800'}`}>
+                    <div
+                      className={`rounded-2xl border p-3 text-center transition-all ${isListeningVoice ? 'border-indigo-100 bg-indigo-50/50 text-indigo-600 dark:border-indigo-900/35 dark:bg-indigo-950/20 dark:text-indigo-400' : 'border-slate-100 bg-slate-50/40 dark:border-slate-800 dark:bg-slate-950/30'}`}
+                    >
                       <div className="flex items-center justify-center gap-1.5">
-                        <span className={`w-2 h-2 rounded-full ${isListeningVoice ? 'bg-rose-500 animate-ping' : 'hidden'}`} />
-                        <span className="text-xs text-slate-400 uppercase tracking-wider">语音交互</span>
+                        <span
+                          className={`h-2 w-2 rounded-full ${isListeningVoice ? 'animate-ping bg-rose-500' : 'hidden'}`}
+                        />
+                        <span className="text-xs tracking-wider text-slate-400 uppercase">
+                          语音交互
+                        </span>
                       </div>
-                      <p className={`text-xs font-black leading-relaxed break-words ${isListeningVoice ? 'text-indigo-600' : 'text-slate-600 dark:text-slate-300'}`}>{voiceTranscript || "准备倾听指令 ..."}</p>
+                      <p
+                        className={`text-xs leading-relaxed font-black break-words ${isListeningVoice ? 'text-indigo-600' : 'text-slate-600 dark:text-slate-300'}`}
+                      >
+                        {voiceTranscript || '准备倾听指令 ...'}
+                      </p>
                     </div>
                   </BorderBeam>
                 )}
 
                 <div className="grid grid-cols-2 gap-3 pt-1">
-                  <div className={`p-3 rounded-2xl text-center border ${eyeOcclusion.left ? 'bg-emerald-50/30 border-emerald-100/40 dark:bg-emerald-950/10' : 'bg-slate-50/40 border-slate-100 dark:bg-slate-950/30'} dark:border-slate-800`}>
-                    <div className="text-xs text-slate-400 mb-1 tracking-wider">左眼状态</div>
-                    <div className={`text-xs font-black ${eyeOcclusion.left ? 'text-emerald-500' : 'text-slate-600 dark:text-slate-300'}`}>
+                  <div
+                    className={`rounded-2xl border p-3 text-center ${eyeOcclusion.left ? 'border-emerald-100/40 bg-emerald-50/30 dark:bg-emerald-950/10' : 'border-slate-100 bg-slate-50/40 dark:bg-slate-950/30'} dark:border-slate-800`}
+                  >
+                    <div className="mb-1 text-xs tracking-wider text-slate-400">
+                      左眼状态
+                    </div>
+                    <div
+                      className={`text-xs font-black ${eyeOcclusion.left ? 'text-emerald-500' : 'text-slate-600 dark:text-slate-300'}`}
+                    >
                       {eyeOcclusion.left ? '● 已闭合 / 遮挡' : '○ 正常睁开'}
                     </div>
                   </div>
 
-                  <div className={`p-3 rounded-2xl text-center border ${eyeOcclusion.right ? 'bg-emerald-50/30 border-emerald-100/40 dark:bg-emerald-950/10' : 'bg-slate-50/40 border-slate-100 dark:bg-slate-950/30'} dark:border-slate-800`}>
-                    <div className="text-xs text-slate-400 mb-1 tracking-wider">右眼状态</div>
-                    <div className={`text-xs font-black ${eyeOcclusion.right ? 'text-emerald-500' : 'text-slate-600 dark:text-slate-300'}`}>
+                  <div
+                    className={`rounded-2xl border p-3 text-center ${eyeOcclusion.right ? 'border-emerald-100/40 bg-emerald-50/30 dark:bg-emerald-950/10' : 'border-slate-100 bg-slate-50/40 dark:bg-slate-950/30'} dark:border-slate-800`}
+                  >
+                    <div className="mb-1 text-xs tracking-wider text-slate-400">
+                      右眼状态
+                    </div>
+                    <div
+                      className={`text-xs font-black ${eyeOcclusion.right ? 'text-emerald-500' : 'text-slate-600 dark:text-slate-300'}`}
+                    >
                       {eyeOcclusion.right ? '● 已闭合 / 遮挡' : '○ 正常睁开'}
                     </div>
                   </div>
@@ -969,9 +1175,7 @@ export default function VisionTest({ calibration, onRestart }: VisionTestProps) 
             </Tabs>
           </div>
         </BorderBeam>
-
       </div>
-
     </div>
   );
 }

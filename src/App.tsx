@@ -3,16 +3,13 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { useState, useEffect } from 'react';
-import {
-  Eye, Sliders, Play, CheckCircle2, ShieldCheck, Sparkles,
-  HelpCircle, Monitor, BookOpen, Scaling, Cpu, MonitorDot, Download
-} from 'lucide-react';
-import { TestStage, CalibrationData } from './types';
+import { Cpu, Download, Eye, MonitorDot } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import CreditCardCalibrator from './components/CreditCardCalibrator';
 import VisionTest from './components/VisionTest';
 import WelcomePage from './components/WelcomePage';
 import { Toaster } from './components/ui/sonner';
+import { CalibrationData, TestStage } from './types';
 
 export default function App() {
   const [stage, setStage] = useState<TestStage>(TestStage.Testing);
@@ -20,7 +17,7 @@ export default function App() {
     ppi: 96,
     pixelToMm: 0.264,
     cameraFocalLength: 1.0,
-    isCalibrated: false
+    isCalibrated: false,
   });
   const [isWails, setIsWails] = useState(false);
   const [isDarwin, setIsDarwin] = useState(false);
@@ -50,26 +47,28 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
-
+    <div className="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-800 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100">
       {/* HEADER BAR */}
-      <header className="sticky top-0 z-30 bg-white/50 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/80 transition-colors">
-        <div className={`${isWails && isDarwin ? 'ml-16 mr-16' : 'max-w-7xl'} mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between`}>
+      <header className="sticky top-0 z-30 border-b border-slate-200/50 bg-white/50 backdrop-blur-xl transition-colors dark:border-slate-800/80 dark:bg-slate-900/80">
+        <div
+          className={`${isWails && isDarwin ? 'mr-16 ml-16' : 'max-w-7xl'} mx-auto flex items-center justify-between px-4 py-3 sm:px-6 lg:px-8`}
+        >
           <a
             href="/"
-            className={`flex items-center gap-3.5 transition-opacity ${isWails ? 'cursor-default' : 'hover:opacity-80 cursor-pointer'
-              }`}
+            className={`flex items-center gap-3.5 transition-opacity ${
+              isWails ? 'cursor-default' : 'cursor-pointer hover:opacity-80'
+            }`}
             onClick={(e) => isWails && e.preventDefault()}
           >
-            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-300 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
-              <Eye className="w-5.5 h-5.5 stroke-[2.5]" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-indigo-300 to-indigo-600 text-white shadow-lg shadow-indigo-500/30">
+              <Eye className="h-5.5 w-5.5 stroke-[2.5]" />
             </div>
             <div>
               {/* <h1 className="text-md sm:text-lg font-black tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-1.5 leading-none">
                 AI 智慧测视力 <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-200/30">V2.0</span>
               </h1>
               <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-tight">基于 MediaPipe 计算机视觉与 WebSpeech 语音技术</span> */}
-              <h1 className="text-lg text-slate-900 dark:text-slate-100 flex items-center gap-1.5 select-none leading-none font-[Montserrat_Variable] font-semilight tracking-[0.3em] uppercase">
+              <h1 className="font-semilight flex items-center gap-1.5 font-[Montserrat_Variable] text-lg leading-none tracking-[0.3em] text-slate-900 uppercase select-none dark:text-slate-100">
                 VisionTest
               </h1>
             </div>
@@ -81,17 +80,17 @@ export default function App() {
               <span className="text-xs text-slate-500 dark:text-slate-400 select-none uppercase tracking-wide">本地离线引擎</span>
             </div> */}
 
-            <div className="hidden md:flex items-center gap-1.5 pl-3 pr-2 py-1 rounded-xl text-xs tracking-wide text-slate-500 dark:text-slate-400">
-              <Cpu className="w-3.5 h-3.5 text-indigo-500" />
+            <div className="hidden items-center gap-1.5 rounded-xl py-1 pr-2 pl-3 text-xs tracking-wide text-slate-500 md:flex dark:text-slate-400">
+              <Cpu className="h-3.5 w-3.5 text-indigo-500" />
               <span>已启用 GPU 加速</span>
             </div>
 
             <button
               onClick={() => setStage(TestStage.Calibrating)}
-              className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-950/60 text-slate-500 dark:text-slate-350 rounded-xl border border-indigo-200/50 dark:border-indigo-800/50 text-xs transition"
+              className="dark:text-slate-350 flex items-center gap-1.5 rounded-xl border border-indigo-200/50 bg-indigo-50 px-3 py-1 text-xs text-slate-500 transition hover:bg-indigo-100 dark:border-indigo-800/50 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/60"
               title="校准屏幕 PPI"
             >
-              <MonitorDot className="w-3.5 h-3.5 text-indigo-500" />
+              <MonitorDot className="h-3.5 w-3.5 text-indigo-500" />
               <span className="hidden sm:inline">PPI 校准</span>
             </button>
 
@@ -100,10 +99,10 @@ export default function App() {
                 href="https://github.com/Chaotze/VisionTest/releases/latest"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-950/60 text-slate-500 dark:text-slate-350 rounded-xl border border-indigo-200/50 dark:border-indigo-800/50 text-xs transition"
+                className="dark:text-slate-350 flex items-center gap-1.5 rounded-xl border border-indigo-200/50 bg-indigo-50 px-3 py-1 text-xs text-slate-500 transition hover:bg-indigo-100 dark:border-indigo-800/50 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/60"
                 title="下载 VisionTest"
               >
-                <Download className="w-3.5 h-3.5 text-indigo-500" />
+                <Download className="h-3.5 w-3.5 text-indigo-500" />
                 <span className="hidden sm:inline">APP 下载</span>
               </a>
             )}
@@ -112,11 +111,12 @@ export default function App() {
       </header>
 
       {/* CORE WORKSPACE CONTENT */}
-      <main className={`flex-1 ${isWails ? '' : 'max-w-7xl'} w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col items-center justify-center`}>
-
+      <main
+        className={`flex-1 ${isWails ? '' : 'max-w-7xl'} mx-auto flex w-full flex-col items-center justify-center px-4 py-8 sm:px-6 lg:px-8`}
+      >
         {/* WELCOMING PAGE */}
         {stage === TestStage.Welcome && (
-          <div className="w-full max-w-5xl space-y-8 animate-fade-in">
+          <div className="animate-fade-in w-full max-w-5xl space-y-8">
             <WelcomePage
               calibration={calibration}
               onCalibrating={() => setStage(TestStage.Calibrating)}
@@ -127,7 +127,7 @@ export default function App() {
 
         {/* CALIBRATION WINDOW */}
         {stage === TestStage.Calibrating && (
-          <div className="w-full flex items-center justify-center animate-scale-up">
+          <div className="animate-scale-up flex w-full items-center justify-center">
             <CreditCardCalibrator
               onComplete={handleCalibrationComplete}
               onCancel={() => setStage(TestStage.Testing)}
@@ -138,21 +138,24 @@ export default function App() {
 
         {/* TEST INTERFACE SYSTEM */}
         {stage === TestStage.Testing && (
-          <div className="w-full animate-fade-in">
+          <div className="animate-fade-in w-full">
             <VisionTest
               calibration={calibration}
               onRestart={() => setStage(TestStage.Testing)}
             />
           </div>
         )}
-
       </main>
 
       {/* FOOTER */}
-      <footer className="p-4 border-t border-slate-200/50 dark:border-slate-850/80 bg-white/40 dark:bg-slate-900/40 text-center text-slate-400 dark:text-slate-500 text-[11px] font-semilight tracking-wide">
+      <footer className="dark:border-slate-850/80 font-semilight border-t border-slate-200/50 bg-white/40 p-4 text-center text-[11px] tracking-wide text-slate-400 dark:bg-slate-900/40 dark:text-slate-500">
         <span className="font-[Montserrat_Variable]">Copyright © 2026 </span>
-        <span className="font-[Montserrat_Variable] font-semibold">VisionTest</span>
-        <span>.&nbsp;&nbsp;保留所有权利。测试结果仅供日常预防护理，正规检查请前往三甲医院视光中心或眼科就诊</span>
+        <span className="font-[Montserrat_Variable] font-semibold">
+          VisionTest
+        </span>
+        <span>
+          .&nbsp;&nbsp;保留所有权利。测试结果仅供日常预防护理，正规检查请前往三甲医院视光中心或眼科就诊
+        </span>
       </footer>
 
       <Toaster position="top-center" />

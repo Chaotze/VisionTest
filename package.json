@@ -1,15 +1,17 @@
 {
   "name": "visiontest",
   "private": true,
-  "version": "1.0.60606",
+  "version": "1.2.60616",
   "type": "module",
   "scripts": {
     "dev": "vite --host=0.0.0.0",
     "build:dev": "tsc && vite build --minify false --mode development",
     "build": "tsc && vite build --mode production",
-    "preview": "vite preview",
+    "preview": "vite preview --host 0.0.0.0",
+    "format": "prettier --write \"**/*.{ts,tsx}\"",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
@@ -39,6 +41,9 @@
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
+    "prettier": "^3.8.4",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",

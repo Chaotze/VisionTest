@@ -23,16 +23,16 @@ export function calculateOptotypeSizePx(
   const distanceMm = distanceCm * 10;
   // tan(5 arcminutes) = tan(5/60 degrees) = tan(0.0833333 degrees) = 0.00145444
   const tanFiveArcMin = 0.00145444104;
-  
+
   // Height of E at 1.0 Visual Acuity in millimeters
   const baseHeightMm = distanceMm * tanFiveArcMin;
-  
+
   // Height for targeted visual acuity (inversely proportional)
   const targetHeightMm = baseHeightMm / decimalAcuity;
-  
+
   // Convert millimeters to CSS pixels
   const sizePx = (targetHeightMm / 25.4) * ppi;
-  
+
   // Return minimum size of 5px to avoid render crashes, but typically it will be larger
   return Math.max(5, sizePx);
 }
@@ -58,11 +58,11 @@ export function estimateDistanceCm(
   const dx = leftPupil.x - rightPupil.x;
   const dy = leftPupil.y - rightPupil.y;
   const dNorm = Math.sqrt(dx * dx + dy * dy);
-  
+
   if (dNorm === 0) return 60; // default fallback 60cm
-  
+
   const distanceCm = (6.3 * focalFactor) / dNorm;
-  
+
   // Bound to a reasonable indoor webcam tracking range (20cm to 300cm)
   return Math.min(Math.max(distanceCm, 20), 300);
 }
@@ -86,7 +86,7 @@ function getDistance(a: Landmark, b: Landmark): number {
  * - p4: Right/Left corner
  * - p5: Bottom-right eyelid
  * - p6: Bottom-left eyelid
- * 
+ *
  * EAR formula: (||p2 - p6|| + ||p3 - p5||) / (2 * ||p1 - p4||)
  */
 export function calculateEAR(
@@ -100,7 +100,7 @@ export function calculateEAR(
   const width = getDistance(corner1, corner2);
   const height1 = getDistance(eyelidTop1, eyelidBottom1);
   const height2 = getDistance(eyelidTop2, eyelidBottom2);
-  
+
   if (width === 0) return 0;
   return (height1 + height2) / (2.0 * width);
 }
@@ -125,41 +125,45 @@ export function detectPointingGesture(
   mirrored: boolean = true
 ): Direction | null {
   if (!landmarks || landmarks.length < 21) return null;
-  
+
   const mcpIndex = landmarks[5];
   const tipIndex = landmarks[8];
-  
+
   // Basic finger extension lengths
   const indexExtend = getDistance(mcpIndex, tipIndex);
-  
+
   // Compare to other fingers to ensure they are folded
-  const isMiddleFolded = getDistance(landmarks[9], landmarks[12]) < indexExtend * 0.5;
-  const isRingFolded = getDistance(landmarks[13], landmarks[16]) < indexExtend * 0.5;
-  const isPinkyFolded = getDistance(landmarks[17], landmarks[20]) < indexExtend * 0.5;
-  
+  const isMiddleFolded =
+    getDistance(landmarks[9], landmarks[12]) < indexExtend * 0.5;
+  const isRingFolded =
+    getDistance(landmarks[13], landmarks[16]) < indexExtend * 0.5;
+  const isPinkyFolded =
+    getDistance(landmarks[17], landmarks[20]) < indexExtend * 0.5;
+
   // Make sure index finger is sufficiently extended relative to knuckle spans
   const wrist = landmarks[0];
   const mcpIndexToWrist = getDistance(wrist, mcpIndex);
-  
-  const isIndexExtended = getDistance(landmarks[6], tipIndex) > mcpIndexToWrist * 0.35;
-  
+
+  const isIndexExtended =
+    getDistance(landmarks[6], tipIndex) > mcpIndexToWrist * 0.35;
+
   // Strict check: Index is extended, others are bent to avoid trigger on random open hand
   if (!isIndexExtended || (!isMiddleFolded && !isRingFolded)) {
     return null;
   }
-  
+
   // We have a pointing finger! Analyze direction vector
   const dx = tipIndex.x - mcpIndex.x;
   const dy = tipIndex.y - mcpIndex.y; // note y is negative going up on screen
-  
+
   const absDx = Math.abs(dx);
   const absDy = Math.abs(dy);
   const threshold = 0.05; // minimum displacement
-  
+
   if (absDx < threshold && absDy < threshold) {
     return null;
   }
-  
+
   if (absDy > absDx) {
     // Vertical gesture
     if (dy < 0) {
@@ -172,11 +176,11 @@ export function detectPointingGesture(
     // If mirrored is true (typical webcam display), pointing left on camera (tip.x < mcp.x)
     // actually corresponds to pointing RIGHT relative to the observer, but we want to map it
     // so that pointing physically towards the left of the image goes LEFT on the screen, etc.
-    // Let's standardise: if client sees their hand pointing to their left (toward left edge of screen) 
+    // Let's standardise: if client sees their hand pointing to their left (toward left edge of screen)
     // it corresponds to x being smaller in mirrored coordinates.
     // If the image is mirrored:
     // User points to their physical right -> finger goes towards screen left of mirrored webcam.
-    // Therefore let's map: 
+    // Therefore let's map:
     // physical direction user wants to select.
     if (mirrored) {
       // In a mirrored webcam, when pointing left of screen (dx < 0), physical finger points to user's left.
