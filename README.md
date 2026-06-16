@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./public/favicon.png" alt="VisionTest logo" width="120" />
+  <img src="./public/favicon.png" alt="VisionTest logo" width="240" />
 </p>
 
 <h1 align="center">VisionTest</h1>
@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="./README.md">English</a> |
+  English |
   <a href="./README.zh-CN.md">简体中文</a>
 </p>
 
@@ -18,7 +18,12 @@
   <img src="https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white" alt="React 19" />
   <img src="https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white" alt="TypeScript 5.8" />
   <img src="https://img.shields.io/badge/MediaPipe-Tasks%20Vision-34A853?logo=google&logoColor=white" alt="MediaPipe Tasks Vision" />
-  <img src="https://img.shields.io/badge/License-AGPL%20v3-A42E2B" alt="AGPL v3" />
+  <a href="https://github.com/Chaotze/VisionTest/blob/master/LICENSE">
+    <img alt="GitHub" src="https://img.shields.io/github/license/Chaotze/VisionTest"/>
+  </a>
+  <a href="https://github.com/Chaotze/VisionTest/tags" rel="nofollow">
+    <img alt="GitHub tag (latest SemVer pre-release)" src="https://img.shields.io/github/v/tag/Chaotze/VisionTest?include_prereleases&label=version"/>
+  </a>
 </p>
 
 <p align="center">
@@ -33,6 +38,8 @@
 > VisionTest is a preventive self-screening tool. It does not replace professional medical diagnosis, hospital examination, or optometry services. If results are abnormal, unstable, or inconsistent with daily experience, users should visit an ophthalmology department or optometry center.
 
 ## Overview
+
+![Overview](./dev/images/image-overview.png)
 
 VisionTest is an intelligent vision screening application built around HCI and computer vision. It is designed for students, office workers, and family users who want to monitor their eyesight condition with ordinary hardware: a computer screen and a webcam.
 
@@ -56,6 +63,8 @@ Instead of relying on a fixed printed chart and a fixed testing distance, Vision
 - Local bundled MediaPipe assets under `public/mediapipe` for project-controlled runtime delivery.
 - Web and desktop application workflow powered by React, Vite, TypeScript, Go, and Wails.
 
+![PPI calibration with physical reference cards](./dev/images/image-ppi-calibration.png)
+
 ## How It Works
 
 1. The user calibrates the display using a real card-sized object to estimate screen PPI.
@@ -65,6 +74,9 @@ Instead of relying on a fixed printed chart and a fixed testing distance, Vision
 5. The user answers through gestures, speech, or keyboard input, and the app advances through acuity levels.
 
 ## Quick Start
+
+> [!NOTE]
+> The repository is configured with proxy mirrors to facilitate quick dependency installation in mainland China.
 
 ### Prerequisites
 
@@ -96,25 +108,13 @@ pnpm build
 ### Run the Desktop App in Development Mode
 
 ```bash
-task dev
-```
-
-If you prefer using Wails directly:
-
-```bash
-wails3 dev -config ./build/config.yml -port 9245
+wails3 dev
 ```
 
 ### Build Desktop Packages
 
 ```bash
-task build
-```
-
-For multi-platform release tasks configured in the repository:
-
-```bash
-task release
+wails3 build
 ```
 
 ## Usage Flow
@@ -127,11 +127,11 @@ task release
 
 ## Tech Stack
 
+- Vision: MediaPipe Tasks Vision
 - Frontend: React 19, TypeScript, Vite, Tailwind CSS 4
+- UI utilities: Lucide React, Motion, Sonner, Radix-based components
 - Desktop shell: Wails v3
 - Backend/runtime: Go
-- Vision: MediaPipe Tasks Vision
-- UI utilities: Lucide React, Motion, Sonner, Radix-based components
 
 ## Project Structure
 
@@ -173,15 +173,13 @@ Contributions are welcome. If you plan to improve the screening flow, interactio
 
 ## Maintainers
 
-VisionTest is maintained by the VisionTest project team / Chaotze.
+VisionTest is co-maintained by [@Chaotze](https://github.com/Chaotze), [@Aphrody](https://github.com/Aphrody-Dy) and [@qkq5](https://github.com/qkq5).
 
 ## License
 
-This repository currently ships with the GNU Affero General Public License v3.0. See [LICENSE](./LICENSE) for details.
+This repository ships with the GNU Affero General Public License v3.0. See [LICENSE](./LICENSE) for details.
 
 ## Acknowledgements
 
-- GitHub documentation for README expectations and repository presentation guidance
-- MediaPipe Tasks Vision
-- Wails
-- React and Vite
+- [MediaPipe Tasks Vision](https://github.com/google-ai-edge/mediapipe)
+- [Wails](https://wails.io)
